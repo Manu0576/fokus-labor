@@ -18,6 +18,8 @@ function mergeState(a, b) {
   m.revDay = maxMap(a.revDay, b.revDay);
   m.stats = maxMap(a.stats, b.stats);
   m.awarded = maxMap(a.awarded, b.awarded);
+  m.goalHit = maxMap(a.goalHit, b.goalHit);
+  m.wsVisit = maxMap(a.wsVisit, b.wsVisit);
   m.checks = { ...(b.checks || {}) };
   for (const d in (a.checks || {})) { m.checks[d] = { ...(m.checks[d] || {}) }; for (const k in a.checks[d]) m.checks[d][k] = !!(a.checks[d][k] || m.checks[d][k]); }
   m.del = uniq([...(a.del || []), ...(b.del || [])].map(String));
@@ -64,11 +66,14 @@ async function startKid() {
   lastU = remote ? (remote._u || 0) : 0;
   window.__INIT_STATE__ = init || null;
   window.__kidName = me.display_name || "";
+  window.__settings = await loadSettings();
   window.__sync = schedulePush;
   show("childApp");
   window.startChild();
   await takeInbox();
-  if (!remote) schedulePush();
+  schedulePush();
+  if (window.initPush) window.initPush(sb, me);
+  if (window.initTexts) window.initTexts(sb, me, window.childApi);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pullAgain(); });
   window.addEventListener("online", () => { schedulePush(); pullAgain(); });
 }
@@ -100,6 +105,15 @@ async function pullAgain() {
     await takeInbox();
     setSync("Gespeichert");
   } catch (e) { setSync("Offline"); }
+}
+const SKEY = "fokuslabor.settings";
+async function loadSettings() {
+  let s = null; try { s = JSON.parse(localStorage.getItem(SKEY)); } catch (e) {}
+  try {
+    const { data, error } = await sb.from("family_settings").select("data").eq("family_id", me.family_id).maybeSingle();
+    if (!error) { s = (data && data.data) || {}; try { localStorage.setItem(SKEY, JSON.stringify(s)); } catch (e) {} }
+  } catch (e) {}
+  return s || {};
 }
 async function takeInbox() {
   try {
@@ -147,7 +161,7 @@ async function boot() {
   });
   document.querySelectorAll("[data-logout]").forEach(b => b.onclick = async () => {
     if (me && me.role === "child" && window.childApi) { clearTimeout(pushTimer); await push(); }
-    try { localStorage.removeItem(KEY); localStorage.removeItem(PKEY); } catch (e) {}
+    try { localStorage.removeItem(KEY); localStorage.removeItem(PKEY); localStorage.removeItem(SKEY); } catch (e) {}
     await sb.auth.signOut(); location.reload();
   });
   const { data: { session } } = await sb.auth.getSession();

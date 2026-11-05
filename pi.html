@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>π-Werkstatt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: ein Schulheft (hell) bzw. eine Schultafel (dunkel); oben Tabs, darunter Video-Player oder Trainingskarte, einspaltig auf dem Handy */
+:root{
+  --paper:#f4f7fd; --grid:#dbe3f3; --card:#ffffff; --ink:#1b2757; --ink2:#56638f; --line:#cdd6ec;
+  --pen:#2350d0; --pen-soft:#e3eafc; --mark:#ffd84a; --red:#d4372a; --red-soft:#fde6e3; --ok:#1d8a4b; --ok-soft:#ddf3e5;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  --hand:"Patrick Hand","Comic Sans MS","Segoe Print",cursive;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#101c18; --grid:#1b2c26; --card:#16251f; --ink:#eef4ec; --ink2:#a6bbb0; --line:#2b443b;
+  --pen:#8cc2ff; --pen-soft:#1d3346; --mark:#f0cf4f; --red:#ff8b7b; --red-soft:#3b2220; --ok:#6fdc98; --ok-soft:#183a28; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#101c18; --grid:#1b2c26; --card:#16251f; --ink:#eef4ec; --ink2:#a6bbb0; --line:#2b443b;
+  --pen:#8cc2ff; --pen-soft:#1d3346; --mark:#f0cf4f; --red:#ff8b7b; --red-soft:#3b2220; --ok:#6fdc98; --ok-soft:#183a28; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:2px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--display);font-weight:800;font-size:26px;line-height:1;display:flex;align-items:center;gap:8px;margin-right:auto}
+.brand .pi{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;border:3px solid var(--pen);color:var(--pen);font-size:24px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:700 15px var(--body);color:var(--ink2);background:transparent;border:2px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);background:var(--mark);border-color:var(--mark)}
+.tabs button:not([aria-selected="true"]):hover{border-color:var(--line)}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--pen);outline-offset:2px}
+main{padding-block:20px 48px}
+h2{font-family:var(--display);font-size:28px;line-height:1.15;margin:0 0 4px;text-wrap:balance}
+.lead{color:var(--ink2);margin:0 0 16px;max-width:65ch}
+
+/* Video */
+.vlayout{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+@media (max-width:760px){.vlayout{grid-template-columns:1fr}}
+.vidlist{display:flex;flex-direction:column;gap:8px;min-width:0}
+@media (max-width:760px){.vidlist{flex-direction:row;overflow-x:auto;padding-bottom:6px}.vidlist button{min-width:190px}}
+.vidlist button{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px;cursor:pointer;color:var(--ink);font:inherit}
+.vidlist button[aria-current="true"]{border-color:var(--pen);box-shadow:0 0 0 3px var(--pen-soft)}
+.vidlist .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:var(--pen-soft);color:var(--pen)}
+.vidlist .seen .n{background:var(--ok);color:var(--card)}
+.vidlist b{display:block;font-size:15px;line-height:1.25}
+.vidlist small{color:var(--ink2);font-size:12.5px}
+.player{background:var(--card);border:2px solid var(--line);border-radius:18px;overflow:hidden;min-width:0}
+.screen{position:relative;aspect-ratio:5/3;max-width:100%;background:var(--card)}
+.screen canvas{display:block;width:100%;height:100%}
+.bigplay{position:absolute;inset:0;margin:auto;width:84px;height:84px;border-radius:50%;border:none;background:var(--pen);color:var(--card);font-size:34px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.cap{padding:14px 18px 6px;font-size:18px;line-height:1.45;min-height:5.4em;border-top:2px dashed var(--line)}
+.cap .who{font:800 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);display:block;margin-bottom:2px}
+.ctrl{display:flex;align-items:center;gap:8px;padding:10px 14px 14px;flex-wrap:wrap}
+.ctrl button.ic{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer}
+.ctrl button.ic.main{background:var(--pen);border-color:var(--pen);color:var(--card)}
+.segs{display:flex;gap:4px;flex:1;min-width:120px}
+.segs span{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden;cursor:pointer}
+.segs span i{display:block;height:100%;width:0;background:var(--pen)}
+.toggle{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:var(--ink2);cursor:pointer;user-select:none;border-radius:8px;padding:2px 4px}
+.toggle input{width:18px;height:18px;accent-color:var(--pen)}
+#voicesel{font:600 14px var(--body);max-width:170px;padding:6px 8px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.askbox{margin:0 14px 12px;padding:12px 14px;border:2px solid var(--red);border-radius:14px;background:var(--red-soft)}
+.askrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.askrow input{font:700 22px var(--body);width:150px;max-width:100%;padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-variant-numeric:tabular-nums}
+.askrow .unit{font:700 20px var(--hand);color:var(--ink2)}
+.askmsg{margin:10px 0 0;font-size:16px}.askmsg.ok{color:var(--ok)}.askmsg.no{color:var(--red)}
+.endcard{display:flex;gap:10px;flex-wrap:wrap;padding:0 14px 14px}
+.btn{font:800 15px var(--body);border-radius:12px;padding:10px 16px;border:2px solid var(--pen);background:var(--pen);color:var(--card);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--pen)}
+.btn.warn{background:var(--mark);border-color:var(--mark);color:#1b2757}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* Training */
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.modes button{font:700 14.5px var(--body);border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
+.modes button small{font-weight:600;color:var(--ink2);font-size:12px}
+.modes button[aria-pressed="true"]{border-color:var(--pen);background:var(--pen-soft)}
+.modes .probe{border-color:var(--mark);background:var(--mark);color:#1b2757}
+.modes .probe small{color:#3c4670}
+.tlayout{display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start}
+@media (max-width:760px){.tlayout{grid-template-columns:1fr}}
+.qcard{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pill{font:800 12px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--pen-soft);color:var(--pen)}
+.counter{font-weight:700;color:var(--ink2);font-size:14px;font-variant-numeric:tabular-nums}
+.qtext{font-size:19px;line-height:1.45;margin:0 0 12px;max-width:62ch}
+.qbody{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.qbody .left{flex:1;min-width:230px}
+.fig{width:170px;max-width:100%;flex:none}
+.fig svg{width:100%;height:auto;display:block}
+.ans{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.ans input{font:700 22px var(--body);width:170px;max-width:100%;padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);font-variant-numeric:tabular-nums}
+.ans .unit{font:700 20px var(--hand);color:var(--ink2)}
+.opts{display:grid;gap:8px;margin:6px 0 12px}
+.opts button{text-align:left;font:600 17px var(--body);padding:10px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.opts button.sel{border-color:var(--pen);background:var(--pen-soft)}
+.opts button.good{border-color:var(--ok);background:var(--ok-soft)}
+.opts button.bad{border-color:var(--red);background:var(--red-soft)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.tipbox{margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--pen-soft);font-family:var(--hand);font-size:21px}
+.fb{margin-top:14px;padding:14px;border-radius:14px;border:2px solid}
+.fb.ok{border-color:var(--ok);background:var(--ok-soft)}
+.fb.no{border-color:var(--red);background:var(--red-soft)}
+.fb h3{margin:0 0 6px;font-family:var(--display);font-size:22px}
+.fb .trap{font-weight:700;margin:0 0 8px}
+.steps{margin:6px 0 0;padding-left:0;list-style:none;font-family:var(--hand);font-size:21px;line-height:1.35}
+.steps li{padding:2px 0}
+.steps li:last-child{background:linear-gradient(transparent 55%,var(--mark) 55%);display:inline}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.box{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px}
+.box h3{margin:0 0 8px;font-family:var(--display);font-size:19px}
+.bar{display:grid;grid-template-columns:84px 1fr 46px;gap:8px;align-items:center;font-size:13.5px;margin:6px 0;font-variant-numeric:tabular-nums}
+.bar .t{height:9px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--ok)}
+.streak{font-family:var(--display);font-size:30px;font-weight:800;line-height:1}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--pen)}
+.result{text-align:left}
+.grade{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:8px 0 14px}
+.grade .g{width:86px;height:86px;border-radius:50%;border:4px solid var(--red);color:var(--red);display:grid;place-items:center;font:800 44px var(--display);transform:rotate(-8deg)}
+.rlist{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:6px}
+.rlist li{display:flex;gap:8px;align-items:baseline;font-size:15px}
+.rlist .s{font-weight:800;min-width:22px}
+.rlist .s.ok{color:var(--ok)} .rlist .s.no{color:var(--red)}
+
+/* Formeln */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.fcard{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.fcard h3{margin:0 0 2px;font-family:var(--display);font-size:20px}
+.fcard .z{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.fml{font-family:var(--hand);font-size:25px;line-height:1.5;margin:8px 0 4px}
+.fml mark{background:linear-gradient(transparent 50%,var(--mark) 50%);color:inherit;padding:0 2px}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.05;margin:0 3px}
+.fr>span:first-child{border-bottom:2px solid currentColor;padding:0 3px}
+.fcard p{margin:4px 0;font-size:14.5px;color:var(--ink2)}
+.errs{margin-top:16px}
+.ftrain{margin-top:16px}
+.fmodes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.fmodes button{font:700 14.5px var(--body);border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer}
+.fmodes button[aria-pressed="true"]{border-color:var(--pen);background:var(--pen-soft)}
+.fmodes .counter{margin-left:auto}
+.fq{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.fline{font-family:var(--hand);font-size:30px;line-height:1.4;margin:6px 0 12px;min-height:1.4em;overflow-wrap:anywhere}
+.gap{display:inline-block;min-width:64px;padding:0 10px;border-bottom:3px solid var(--pen);text-align:center;color:var(--pen)}
+.gap.good{color:var(--ok);border-color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chips button{font:400 26px var(--hand);min-width:58px;padding:4px 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chips button:disabled{opacity:.35;cursor:default}
+.chips button.bad{border-color:var(--red);background:var(--red-soft)}
+.chips button.good{border-color:var(--ok);background:var(--ok-soft)}
+.fmsg{margin:8px 0 0;font-weight:700}.fmsg.ok{color:var(--ok)}.fmsg.no{color:var(--red)}
+.errs li{margin:6px 0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="top"><div class="wrap">
+  <div class="brand"><span class="pi">π</span>π-Werkstatt</div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-videos" aria-selected="true" data-tab="videos">Videos</button>
+    <button role="tab" id="t-train" aria-selected="false" data-tab="train">Training</button>
+    <button role="tab" id="t-formeln" aria-selected="false" data-tab="formeln">Formeln</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+<section id="tab-videos">
+  <h2>Schritt für Schritt erklärt</h2>
+  <p class="lead">Sieben Erklärvideos zum Kapitel „Berechnungen am Kreis“. Jedes erklärt zuerst, worum es geht, dann die Formel und ein Beispiel. Am Ende rechnest du selbst eine Aufgabe und trägst dein Ergebnis ein. Mit „Vorlesen“ erklärt dir Lilli alles mit ihrer Stimme.</p>
+  <div class="vlayout">
+    <div class="vidlist" id="vidlist"></div>
+    <div class="player">
+      <div class="screen"><canvas id="cv"></canvas><button class="bigplay" id="bigplay" aria-label="Video abspielen">▶</button></div>
+      <div class="cap" id="cap"></div>
+      <div class="ctrl">
+        <button class="ic" id="prev" aria-label="Schritt zurück">⏮</button>
+        <button class="ic main" id="play" aria-label="Abspielen">▶</button>
+        <button class="ic" id="next" aria-label="Schritt weiter">⏭</button>
+        <div class="segs" id="segs"></div>
+        <label class="toggle" id="voicewrap"><input type="checkbox" id="voice" checked> Vorlesen</label>
+        <select id="voicesel" aria-label="Stimme auswählen" hidden></select>
+      </div>
+      <div class="askbox" id="askbox" hidden>
+        <div class="askrow"><label for="askinp"><b>Dein Ergebnis:</b></label><input id="askinp" inputmode="decimal" autocomplete="off" placeholder="z. B. 4,71"><span class="unit" id="askunit"></span>
+        <button class="btn" id="askcheck">Prüfen</button><button class="btn ghost" id="askshow">Lösung zeigen</button></div>
+        <div id="askfb" aria-live="polite"></div>
+      </div>
+      <div class="endcard" id="endcard" hidden></div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-train" hidden>
+  <h2>Training für die Schularbeit</h2>
+  <p class="lead">Wähle ein Thema oder mach die Probe-Schularbeit. Die Zahlen sind jedes Mal neu. Rechne mit der π-Taste. Runde auf 2 Dezimalen oder wie im Buch, zum Beispiel r ≈ 35 mm. Beides wird als richtig gewertet. Schreib Kommazahlen mit Komma und große Zahlen ohne Tausenderpunkt, zum Beispiel 25000.</p>
+  <div class="modes" id="modes"></div>
+  <div class="tlayout">
+    <div class="qcard" id="qcard"></div>
+    <aside class="side">
+      <div class="box"><h3>Serie</h3><div class="streak" id="streak">0</div><small style="color:var(--ink2)">richtige Antworten hintereinander</small></div>
+      <div class="box"><h3>Dein Stand</h3><div id="bars"></div></div>
+      <div class="box"><label class="chk"><input type="checkbox" id="plus" checked> Kreissektor &amp; Kreisring mitüben (Plus-Stoff, Aufgaben wie 692, 693, 698)</label></div>
+    </aside>
+  </div>
+</section>
+
+<section id="tab-formeln" hidden>
+  <h2>Alle Formeln auf einen Blick</h2>
+  <p class="lead">Das musst du für die Schularbeit können (Lernziele Z1 bis Z4, plus Kreissektor).</p>
+  <div class="fgrid">
+    <div class="fcard"><span class="z">Z1</span><h3>Umfang</h3>
+      <div class="fml"><mark>u = π · d</mark><br>u = 2 · π · r</div>
+      <p>d = 2 · r. Halbkreisbogen: π · r.</p></div>
+    <div class="fcard"><span class="z">Z2</span><h3>Kreisbogen</h3>
+      <div class="fml"><mark>b = <span class="fr"><span>π · r</span><span>180</span></span> · α</mark></div>
+      <p>Umfang des Kreissektors: b + 2 · r. Uhrzeiger: 1 Minute = 6°.</p></div>
+    <div class="fcard"><span class="z">Z3</span><h3>Flächeninhalt</h3>
+      <div class="fml"><mark>A = π · r²</mark><br>A = <span class="fr"><span>π</span><span>4</span></span> · d²</div>
+      <p>Radius × 2 → Fläche × 4. Radius × 3 → Fläche × 9.</p></div>
+    <div class="fcard"><span class="z">Z4</span><h3>Umkehraufgaben</h3>
+      <div class="fml">r = <span class="fr"><span>u</span><span>2 · π</span></span> &nbsp; d = <span class="fr"><span>u</span><span>π</span></span><br>r = √(A : π)<br>r = <span class="fr"><span>b · 180</span><span>π · α</span></span> &nbsp; α = <span class="fr"><span>b · 180</span><span>π · r</span></span></div>
+      <p>Steht π in der Angabe (A = 16π), kürze es weg.</p></div>
+    <div class="fcard"><span class="z">Plus</span><h3>Kreissektor</h3>
+      <div class="fml"><mark>A = <span class="fr"><span>π · r²</span><span>360</span></span> · α</mark><br>A = <span class="fr"><span>b · r</span><span>2</span></span></div>
+      <p>Ein Tortenstück vom Kreis.</p></div>
+    <div class="fcard"><span class="z">Plus</span><h3>Kreisring</h3>
+      <div class="fml"><mark>A = π · R² − π · r²</mark></div>
+      <p>Großer Kreis minus Loch. Ringstück: (π · R² − π · r²) : 360 · α.</p></div>
+    <div class="fcard"><span class="z">Umrechnen</span><h3>Einheiten</h3>
+      <div class="fml" style="font-size:21px">1 km = 1000 m<br>1 m = 10 dm = 100 cm = 1000 mm<br>1 cm² = 100 mm²<br>1 m² = 100 dm² = 10 000 cm²</div>
+      <p>Größere → kleinere Einheit: mal. Kleinere → größere Einheit: durch. Vor dem Rechnen alles in dieselbe Einheit bringen.</p></div>
+  </div>
+  <div class="box ftrain" id="ftrain">
+    <h3>Formel-Training</h3>
+    <p class="lead" style="margin:0 0 10px">Ergänze die fehlenden Teile oder baue die Formel selbst zusammen.</p>
+    <div class="fmodes"><button id="fm-cloze" aria-pressed="true">Formel ergänzen</button><button id="fm-build" aria-pressed="false">Formel bauen</button><span class="counter" id="fscore"></span></div>
+    <div id="fcard"></div>
+  </div>
+  <div class="box errs"><h3>Die 5 häufigsten Fehler</h3>
+    <ol>
+      <li>Durchmesser statt Radius in A = π · r² eingesetzt. Immer zuerst r = d : 2.</li>
+      <li>Beim Umfang mit Radius die 2 vergessen: u = 2 · π · r, nicht π · r.</li>
+      <li>Einheit vergessen oder falsch umgerechnet. Bei Längen ist der Faktor 10 (1 cm = 10 mm), bei Flächen 100 (1 cm² = 100 mm²).</li>
+      <li>Zwischenergebnisse zu früh gerundet. Erst am Ende auf 2 Dezimalen runden.</li>
+      <li>Beim Umfang von Sektor, Viertelkreis oder Beet die zwei Radien vergessen.</li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<script>
+"use strict";
+const PI=Math.PI;
+const $=s=>document.querySelector(s);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=t=>{t=clamp(t);return 1-Math.pow(1-t,3);};
+const ph=(t,a,b)=>ease((t-a)/(b-a));
+const store={get(){try{return JSON.parse(localStorage.getItem('piwerk-v1'))||{};}catch(e){return {};}},set(o){try{localStorage.setItem('piwerk-v1',JSON.stringify(o));}catch(e){}}};
+let DB=store.get(); DB.seen=DB.seen||{}; DB.stats=DB.stats||{}; DB.streak=DB.streak||0;
+const save=()=>store.set(DB);
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+function showTab(t){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  ['videos','train','formeln'].forEach(k=>$('#tab-'+k).hidden=k!==t);
+  if(t!=='videos') pause();
+  if(t==='train' && !Q.cur) newQ();
+  if(t==='videos') resize();
+  window.scrollTo(0,0);
+}
+
+/* ---------- Canvas helpers ---------- */
+const C={};
+function refreshColors(){const cs=getComputedStyle(document.documentElement);['paper','grid','card','ink','ink2','line','pen','pen-soft','mark','red','ok'].forEach(k=>C[k.replace('-','')]=cs.getPropertyValue('--'+k).trim());}
+const cv=$('#cv'); const ctx=cv.getContext('2d');
+const font=s=>`${s}px "Patrick Hand","Comic Sans MS",cursive`;
+const g={
+  bg(){ctx.fillStyle=C.card;ctx.fillRect(0,0,800,480);ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=800;x+=24){ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,480);}for(let y=0;y<=480;y+=24){ctx.moveTo(0,y+.5);ctx.lineTo(800,y+.5);}ctx.stroke();},
+  circle(x,y,r,col=C.ink,w=4,f=1,st=-PI/2,fill=null){if(f<=0)return;ctx.beginPath();ctx.arc(x,y,r,st,st+2*PI*f);if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();},
+  arc(x,y,r,a0,a1,col=C.pen,w=7){ctx.beginPath();ctx.arc(x,y,r,a0,a1);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();},
+  line(x1,y1,x2,y2,col=C.ink,w=4,f=1){if(f<=0)return;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1+(x2-x1)*f,y1+(y2-y1)*f);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();},
+  dot(x,y,r=6,col=C.ink){ctx.beginPath();ctx.arc(x,y,r,0,2*PI);ctx.fillStyle=col;ctx.fill();},
+  text(s,x,y,size=32,col=C.ink,align='center',a=1){if(a<=0)return;ctx.globalAlpha=a;ctx.font=font(size);ctx.fillStyle=col;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(s,x,y);ctx.globalAlpha=1;},
+  mark(x,y,w,h,a=1){if(a<=0)return;ctx.globalAlpha=.55*a;ctx.fillStyle=C.mark;ctx.fillRect(x,y,w*a,h);ctx.globalAlpha=1;},
+  sector(x,y,r,a0,a1,fill,stroke=C.ink,w=3){ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,r,a0,a1);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w;ctx.lineJoin='round';ctx.stroke();}},
+  poly(pts,col,w=4,f=1){if(f<=0)return;const n=pts.length;const segs=f*n;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<=n;i++){const k=Math.min(1,segs-(i-1));if(k<=0)break;const p=pts[(i-1)%n],q=pts[i%n];ctx.lineTo(p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k);}ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();},
+  fx(parts,x,y,size=32,col=C.ink,align='left',a=1,hl=false){
+    if(a<=0)return 0;if(typeof parts==='string')parts=[parts];ctx.font=font(size);
+    const ws=parts.map(p=>typeof p==='string'?ctx.measureText(p).width:Math.max(ctx.measureText(p.n).width,ctx.measureText(p.d).width)+10);
+    const tot=ws.reduce((s,w)=>s+w,0)+(parts.length-1)*6;let cx=align==='center'?x-tot/2:x;
+    const hasFr=parts.some(p=>typeof p!=='string');
+    if(hl)g.mark(cx-8,y-(hasFr?size*1.15:size*0.55),tot+16,hasFr?size*2.3:size*1.1,a);
+    ctx.globalAlpha=a;ctx.fillStyle=col;ctx.strokeStyle=col;ctx.textBaseline='middle';
+    parts.forEach((p,i)=>{if(typeof p==='string'){ctx.textAlign='left';ctx.fillText(p,cx,y);}else{ctx.textAlign='center';const m=cx+ws[i]/2;ctx.fillText(p.n,m,y-size*0.58);ctx.fillText(p.d,m,y+size*0.62);ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx+2,y+1);ctx.lineTo(cx+ws[i]-2,y+1);ctx.stroke();}cx+=ws[i]+6;});
+    ctx.globalAlpha=1;return tot;},
+  seq(t,items,x,y0,dy,size=30,start=.05,step=.13){items.forEach((it,i)=>{const a=ph(t,start+i*step,start+i*step+.1);if(typeof it==='string'||Array.isArray(it))g.fx(it,x,y0+i*dy,size,C.ink,'left',a);else g.fx(it.p,x,y0+i*dy,it.s||size,it.c||C.ink,'left',a,it.hl);});},
+  hex(cx,cy,R,rot=0){const p=[];for(let i=0;i<6;i++){const a=rot+i*PI/3;p.push([cx+R*Math.cos(a),cy+R*Math.sin(a)]);}return p;},
+  pizza(n,t,cx,cy,R,x0,y0){const th=2*PI/n,w=2*R*Math.sin(th/2),e=ease(t);
+    for(let i=0;i<n;i++){const phi=th*(i+.5)-PI/2,m=Math.floor(i/2);let ax,ay,dir;
+      if(i%2===0){dir=PI/2;ax=x0+m*w+w/2;ay=y0;}else{dir=-PI/2;ax=x0+(m+1)*w;ay=y0+R*Math.cos(th/2);}
+      let d=dir-phi;while(d>PI)d-=2*PI;while(d<-PI)d+=2*PI;
+      const X=cx+(ax-cx)*e,Y=cy+(ay-cy)*e,D=phi+d*e;
+      g.sector(X,Y,R,D-th/2,D+th/2,i%2?C.pensoft:C.mark,C.ink,2);}
+    return {w:(n/2)*w+w/2,h:R};}
+};
+
+/* ---------- Videos ---------- */
+function askScene(cap,ask,lines,sketch){return {cap,ask,draw(t){g.fx('Jetzt du!',40,52,46,C.red,'left',1,true);lines.forEach((l,i)=>g.fx(l,50,150+i*80,40,i===lines.length-1?C.red:C.ink,'left',ph(t,.05+i*.08,.15+i*.08)));sketch(t);}};}
+function solveScene(cap,steps){return {cap,draw(t){g.fx('Auflösung',40,52,46,C.ok,'left',1,true);g.seq(t,steps,60,150,85,40,.05,.15);}};}
+function stadium(x,y,w,h,col=C.ink,fill=C.pensoft){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.arc(x+w,y+h/2,h/2,-PI/2,PI/2);ctx.lineTo(x,y+h);ctx.arc(x,y+h/2,h/2,PI/2,3*PI/2);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=4;ctx.stroke();}
+const VIDEOS=[
+{title:'Was ist π?',sub:'Die Kreiszahl entdecken',scenes:[
+ {cap:'In diesem Video lernst du eine ganz besondere Zahl kennen: die Kreiszahl π (gesprochen: Pi). Schau dir zuerst einen Kreis an. In der Mitte liegt der Mittelpunkt M. Die Strecke quer durch M, von Rand zu Rand, heißt Durchmesser d.',draw(t){g.circle(400,240,150,C.ink,5,ph(t,0,.3));g.dot(400,240,6);g.text('M',400,270,28,C.ink2,'center',ph(t,.2,.35));g.line(250,240,550,240,C.pen,6,ph(t,.3,.55));g.text('d',400,212,40,C.pen,'center',ph(t,.5,.65));}},
+ {cap:'Jetzt rollen wir den Kreis genau einmal ab. Die Strecke, die er dabei zurücklegt, ist sein Umfang u. Der Umfang ist also der Weg einmal rund um den Kreis.',draw(t){const R=60,x0=110,y=400,cy=y-R,e=ph(t,.1,.7),L=2*PI*R*e,cx=x0+L;g.line(60,y,760,y,C.ink2,3);g.line(x0,y,cx,y,C.pen,8);g.circle(cx,cy,R,C.ink,5);const a=L/R;g.line(cx,cy,cx-R*Math.sin(a),cy+R*Math.cos(a),C.ink2,3);g.dot(cx-R*Math.sin(a),cy+R*Math.cos(a),8,C.red);g.dot(x0,y,7,C.red);g.text('u',x0+PI*R,y+34,40,C.pen,'center',ph(t,.7,.8));g.text('Start',x0,y+34,24,C.red,'center');}},
+ {cap:'Nun vergleichen wir: Wie oft passt der Durchmesser in den Umfang? Genau dreimal und noch ein kleines Stück dazu.',draw(t){const x0=90,d=200,y=320;g.line(x0,y,x0+PI*d,y,C.pen,8);g.text('u',x0+PI*d/2,y+40,40,C.pen);for(let i=0;i<3;i++){const a=ph(t,.1+i*.15,.22+i*.15);g.line(x0+i*d+4,y-40,x0+(i+1)*d-4,y-40,i%2?C.ok:C.ink,8,a);g.text('d',x0+i*d+d/2,y-72,34,i%2?C.ok:C.ink,'center',a);}const a=ph(t,.6,.7);g.line(x0+3*d+4,y-40,x0+PI*d,y-40,C.red,8,a);g.text('noch ein Stück',x0+3*d-10,y-110,28,C.red,'center',a);g.text('3 · d + ein bisschen = u',400,110,40,C.ink,'center',ph(t,.75,.85));}},
+ {cap:'Das Tolle ist: Das gilt für jeden Kreis, ob Münze oder Riesenrad. Teilst du den Umfang durch den Durchmesser, kommt immer dieselbe Zahl heraus. Diese Zahl heißt π und ist ungefähr 3,14. Als Formel schreiben wir: u : d = π.',draw(t){g.fx('u : d = π',400,150,74,C.ink,'center',ph(t,.05,.2),true);g.fx('π ≈ 3,14',400,260,58,C.pen,'center',ph(t,.25,.4));[[170,40],[330,60],[520,80],[700,30]].forEach(([x,r],i)=>{const a=ph(t,.45+i*.08,.55+i*.08);g.circle(x,400-r+40,r,C.ink,4,a);g.text('3,14',x,400-r+40,r>40?28:20,C.ink2,'center',a);});}},
+ {cap:'Schon vor über 2000 Jahren hat der griechische Mathematiker Archimedes nach π gesucht. Er zeichnete ein Sechseck in den Kreis hinein und eines um den Kreis herum. Bei einem Kreis mit dem Durchmesser 1 hat das innere Sechseck den Umfang 3 und das äußere ungefähr 3,46. π muss also dazwischen liegen.',draw(t){const cx=250,cy=250,R=150;g.circle(cx,cy,R,C.ink,4);g.poly(g.hex(cx,cy,R),C.pen,4,ph(t,.1,.4));g.poly(g.hex(cx,cy,R/Math.cos(PI/6),PI/6),C.red,4,ph(t,.4,.65));g.text('innen: u = 3',470,150,34,C.pen,'left',ph(t,.3,.4));g.text('außen: u ≈ 3,46',470,210,34,C.red,'left',ph(t,.6,.7));g.fx('3 < π < 3,46',470,300,40,C.ink,'left',ph(t,.75,.85),true);}},
+ {cap:'π hat unendlich viele Nachkommastellen, und es gibt kein Muster, das sich wiederholt. Darum kann man π nie ganz genau als Kommazahl aufschreiben. Zum Rechnen nimmst du einfach die π-Taste auf deinem Taschenrechner.',draw(t){const s='π = 3,14159265358979323846264338327950288419716939937510…';ctx.save();ctx.beginPath();ctx.rect(40,90,720,90);ctx.clip();g.text(s,60-t*900,135,46,C.ink,'left');ctx.restore();const x=330,y=230,a=ph(t,.35,.5);ctx.globalAlpha=a;ctx.fillStyle=C.pensoft;ctx.strokeStyle=C.ink;ctx.lineWidth=4;ctx.beginPath();ctx.roundRect(x,y,140,140,22);ctx.fill();ctx.stroke();ctx.globalAlpha=1;g.text('π',x+70,y+70,90,C.pen,'center',a);g.text('Taschenrechner-Taste',400,410,30,C.ink2,'center',a);}},
+ {cap:'Beispiel: Eine Konservendose hat einen Durchmesser von 10 cm. Wir legen ein Maßband einmal rundherum und messen einen Umfang von 31,4 cm. Jetzt rechnen wir u : d, also 31,4 : 10. Das ergibt 3,14. Das ist ungefähr π!',draw(t){g.circle(170,250,110,C.ink,5,1,-PI/2,C.pensoft);g.line(60,250,280,250,C.pen,5,ph(t,0,.15));g.text('d = 10 cm',170,225,28,C.pen,'center',ph(t,.05,.15));g.circle(170,250,124,C.red,6,ph(t,.15,.4));g.text('Maßband: u = 31,4 cm',170,405,28,C.red,'center',ph(t,.35,.45));g.seq(t,['u : d','= 31,4 : 10',{p:'= 3,14 ≈ π  ✓',hl:true}],400,150,90,42,.45,.13);}},
+ askScene('Jetzt bist du dran! Ein Fahrradreifen hat einen Durchmesser von 50 cm. Mit dem Maßband misst du rundherum einen Umfang von 157 cm. Rechne u : d. Welche Zahl kommt heraus? Gib dein Ergebnis unten ein.',{ans:3.14,unit:'',tol:0.006,tip:'Teile den Umfang durch den Durchmesser: 157 : 50.'},['Fahrradreifen:','d = 50 cm','u = 157 cm','u : d = ?'],t=>{g.circle(590,270,120,C.ink,6,1,-PI/2,C.pensoft);g.circle(590,270,95,C.ink2,2);g.line(470,270,710,270,C.pen,5);g.text('d',590,245,32,C.pen);}),
+ solveScene('Auflösung: u : d ist 157 : 50, und das ergibt 3,14. Wieder kommt ungefähr π heraus, so wie bei jedem Kreis!',['u : d = 157 : 50',{p:'= 3,14',hl:true},{p:'Das ist wieder ungefähr π!',c:C.ok}])
+]},
+{title:'Umfang des Kreises',sub:'u = π · d = 2 · π · r',scenes:[
+ {cap:'In diesem Video geht es um den Umfang. Der Umfang ist der Weg einmal rund um den Kreis herum, so wie eine Ameise, die einmal am Rand einer Pizza entlang krabbelt.',draw(t){const cx=400,cy=225,R=160,e=ph(t,.05,.7),a=-PI/2+2*PI*e;g.circle(cx,cy,R,C.ink,4,1,-PI/2,C.mark);if(e>0)g.arc(cx,cy,R,-PI/2,a,C.pen,9);g.dot(cx+R*Math.cos(a),cy+R*Math.sin(a),11,C.red);g.text('einmal rundherum = Umfang u',400,440,34,C.pen,'center',ph(t,.7,.8));}},
+ {cap:'Wie lang ist dieser Weg? Aus dem ersten Video weißt du: Umfang durch Durchmesser ergibt π. Multiplizieren wir beide Seiten mit d, bekommen wir die Formel: Umfang ist π mal Durchmesser, kurz u = π · d.',draw(t){g.circle(190,250,120,C.ink,5,ph(t,0,.25));g.line(70,250,310,250,C.pen,6,ph(t,.2,.4));g.text('d',190,222,36,C.pen,'center',ph(t,.3,.45));g.fx('u : d = π',560,130,40,C.ink2,'center',ph(t,.35,.45));g.text('↓  mal d',560,195,32,C.ink2,'center',ph(t,.45,.55));g.fx('u = π · d',560,280,70,C.ink,'center',ph(t,.55,.7),true);g.text('Umfang = Pi mal Durchmesser',560,380,30,C.ink2,'center',ph(t,.7,.8));}},
+ {cap:'Manchmal kennst du nur den Radius r. Das ist die Strecke vom Mittelpunkt bis zum Rand, also der halbe Durchmesser. Der Durchmesser ist doppelt so lang: d = 2 · r. Darum gilt auch: u = 2 · π · r.',draw(t){g.circle(190,250,120,C.ink,5);g.line(190,250,310,250,C.red,6,ph(t,.05,.25));g.text('r',250,222,36,C.red,'center',ph(t,.15,.3));g.dot(190,250,6);g.fx('d = 2 · r',430,170,50,C.ink,'left',ph(t,.3,.45));g.fx('u = 2 · π · r',430,280,58,C.ink,'left',ph(t,.55,.7),true);}},
+ {cap:'Beispiel: Beim Fußballklub von Genita dürfen sich bei der Eröffnung eines Heimspiels die Nachwuchsspielerinnen entlang des Mittelkreises aufstellen. Es sind 100 Spielerinnen, und jede braucht 0,5 m Platz. Zusammen brauchen sie also 50 m. Der Mittelkreis hat einen Durchmesser von 18,3 m. Haben alle Platz?',draw(t){ctx.globalAlpha=.15;ctx.fillStyle=C.ok;ctx.fillRect(40,90,360,330);ctx.globalAlpha=1;g.circle(220,255,130,C.ok,5,ph(t,0,.2));g.line(90,255,350,255,C.ok,4,ph(t,.1,.25));g.text('d = 18,3 m',220,230,28,C.ok,'center',ph(t,.15,.3));for(let i=0;i<24;i++){const a=i/24*2*PI,aa=ph(t,.25+i*.01,.3+i*.01);if(aa>0)g.dot(220+130*Math.cos(a),255+130*Math.sin(a),6*aa,C.red);}g.seq(t,['100 Spielerinnen','je 0,5 m Platz',{p:'100 · 0,5 m = 50 m',hl:true},{p:'Reicht der Umfang?',c:C.red}],440,130,75,32,.45,.1);}},
+ {cap:'Wir rechnen: Gegeben ist der Durchmesser, also nehmen wir u = π · d. Wir setzen 18,3 ein: u = π · 18,3. Der Taschenrechner zeigt ungefähr 57,49 m. Das ist mehr als 50 m. Alle 100 Spielerinnen haben Platz!',draw(t){g.circle(150,250,110,C.ok,5);g.line(40,250,260,250,C.ok,4);g.text('d = 18,3 m',150,385,30,C.ok);g.seq(t,['u = π · d','u = π · 18,3',{p:'u ≈ 57,49 m',hl:true},{p:'57,49 m > 50 m  ✓',c:C.ok}],340,120,80,40,.1,.16);}},
+ {cap:'Tipp: Schau immer zuerst, ob r oder d gegeben ist. Hat ein Trinkglas zum Beispiel einen Radius von 3,6 cm, nimmst du u = 2 · π · r. Also u = 2 · π · 3,6, das sind ungefähr 22,62 cm.',draw(t){g.text('Glas: r = 3,6 cm',60,70,40,C.red,'left',ph(t,0,.1));g.seq(t,['u = 2 · π · r','u = 2 · π · 3,6',{p:'u ≈ 22,62 cm',hl:true}],60,170,80,40,.12,.14);const a=ph(t,.55,.68);ctx.globalAlpha=a;ctx.strokeStyle=C.red;ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.beginPath();ctx.roundRect(440,140,320,200,18);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;g.text('Tipp:',600,185,32,C.red,'center',a);g.text('Zuerst schauen:',600,235,30,C.ink,'center',a);g.text('r oder d gegeben?',600,280,30,C.ink,'center',a);}},
+ {cap:'Achtung bei halben Kreisen: Bei einem Halbkreis ist der Bogen nur halb so lang wie der Umfang des ganzen Kreises, also π · r. Und bei einem Blumenbeet in Form eines Viertelkreises gehören zum Umfang auch die zwei geraden Ränder dazu, also zweimal r.',draw(t){g.arc(200,320,140,PI,PI+PI*ph(t,.05,.3),C.pen,8);g.line(60,320,340,320,C.ink2,3);g.text('Halbkreis: π · r',200,150,36,C.pen,'center',ph(t,.25,.35));g.sector(560,330,150,-PI/2,0,C.pensoft,null);g.arc(560,330,150,-PI/2,-PI/2+PI/2*ph(t,.45,.6),C.pen,8);g.line(560,330,560,180,C.red,7,ph(t,.6,.7));g.line(560,330,710,330,C.red,7,ph(t,.65,.75));g.text('Beet: Bogen + r + r',600,410,30,C.red,'center',ph(t,.75,.85));}},
+ askScene('Jetzt bist du dran! Ein rundes Tischtuch hat einen Durchmesser von 1,50 m. Rundherum wird eine Borte angenäht. Wie lang muss die Borte sein? Runde auf 2 Dezimalen und gib dein Ergebnis in Metern ein.',{ans:PI*1.5,unit:'m',tip:'Der Durchmesser ist gegeben, also u = π · d.'},['Tischtuch:','d = 1,50 m','u = ?'],t=>{g.circle(590,270,130,C.ink,5,1,-PI/2,C.mark);g.circle(590,270,130,C.red,4,1,-PI/2);g.line(460,270,720,270,C.pen,5);g.text('d = 1,50 m',590,245,28,C.pen);}),
+ solveScene('Auflösung: Der Durchmesser ist gegeben, also u = π · d. Wir rechnen π · 1,50, das sind ungefähr 4,71 m. Die Borte muss also etwa 4,71 m lang sein.',['u = π · d','u = π · 1,50',{p:'u ≈ 4,71 m',hl:true}])
+]},
+{title:'Länge des Kreisbogens',sub:'b = π · r : 180 · α',scenes:[
+ {cap:'In diesem Video geht es um den Kreisbogen. Ein Kreisbogen ist nur ein Stück vom Kreisrand, so wie der Rand von einem Pizzastück. Zu jedem Bogen gehört ein Winkel in der Mitte des Kreises. Er heißt Zentriwinkel α (gesprochen: Alpha).',draw(t){const cx=400,cy=250,R=170,al=PI*75/180*ph(t,.1,.5),a0=-PI/2-al/2;g.circle(cx,cy,R,C.ink,4);g.sector(cx,cy,R,a0,a0+al,C.pensoft,C.ink,3);g.arc(cx,cy,R,a0,a0+al,C.pen,9);g.arc(cx,cy,40,a0,a0+al,C.red,3);g.text('α',cx,cy-62,34,C.red,'center',ph(t,.4,.5));g.text('b',cx,cy-R-30,40,C.pen,'center',ph(t,.45,.55));g.text('r',cx+60,cy-80,30,C.ink2,'center',ph(t,.45,.55));}},
+ {cap:'Wie lang ist so ein Stück? Der ganze Kreis hat 360° und den Umfang 2 · π · r. Ein Halbkreis hat 180°, also die Hälfte: π · r. Ein Viertelkreis hat 90°, also ein Viertel: π · r : 2. Und für 1° teilen wir den Umfang durch 360.',draw(t){const rows=[['360°','2 · π · r'],['180°','π · r'],['90°',['π · r : 2']],['1°',[{n:'2 · π · r',d:'360'},'=',{n:'π · r',d:'180'}]]];g.text('Winkel',150,60,30,C.ink2,'left');g.text('Bogenlänge',360,60,30,C.ink2,'left');rows.forEach((r,i)=>{const a=ph(t,.08+i*.14,.18+i*.14),y=125+i*90;g.text(r[0],150,y,40,C.red,'left',a);g.fx(r[1],360,y,38,C.ink,'left',a);g.line(130,y+45,720,y+45,C.line,2,a);});}},
+ {cap:'Für einen Winkel von α Grad nehmen wir das kleine Stück für 1° einfach α-mal. So entsteht die Formel für die Bogenlänge: b = π · r : 180 · α.',draw(t){g.fx(['1° →',{n:'π · r',d:'180'}],400,120,44,C.ink2,'center',ph(t,.05,.2));g.fx(['b =',{n:'π · r',d:'180'},'· α'],400,270,70,C.ink,'center',ph(t,.3,.5),true);g.text('α in Grad',400,400,32,C.ink2,'center',ph(t,.55,.7));}},
+ {cap:'Beispiel: David läuft beim Leichtathletiktraining auf der Außenbahn. Die Kurve hat dort einen Radius von 45 m. Er möchte wissen, wie lang ein Kurvenstück mit einem Zentriwinkel von 75° ist.',draw(t){const cx=200,cy=400,R=250,a0=-PI/2,al=PI*75/180;g.circle(cx,cy,R,C.line,3);g.sector(cx,cy,R,a0,a0+al,C.pensoft,C.ink,3);g.arc(cx,cy,R,a0,a0+al*ph(t,.05,.35),C.red,10);g.text('75°',cx+30,cy-70,28,C.ink2,'center',ph(t,.2,.3));g.text('r = 45 m',cx-60,cy-130,28,C.ink2,'center',ph(t,.2,.3));g.seq(t,['Außenbahn','r = 45 m','α = 75°',{p:'b = ?',c:C.red}],520,120,75,38,.35,.1);}},
+ {cap:'Wir setzen in die Formel ein: b = π · 45 : 180 · 75. Mit dem Taschenrechner bekommen wir ungefähr 58,90 m. Das Kurvenstück ist also rund 59 m lang.',draw(t){const cx=170,cy=300,R=130,al=PI*75/180,a0=-PI/2;g.circle(cx,cy,R,C.line,3);g.sector(cx,cy,R,a0,a0+al,C.pensoft,C.ink,3);g.arc(cx,cy,R,a0,a0+al,C.red,9);g.text('75°',cx+22,cy-50,26,C.ink2);g.text('r = 45 m',cx,cy+R+30,28,C.ink2);g.seq(t,[['b =',{n:'π · r',d:'180'},'· α'],['b =',{n:'π · 45',d:'180'},'· 75'],{p:'b ≈ 58,90 m',hl:true}],360,110,110,36,.1,.18);}},
+ {cap:'Noch ein Beispiel: Eine Wanduhr hat einen Minutenzeiger, der 16 cm lang ist. Wie weit wandert seine Spitze in 50 Minuten? In 60 Minuten dreht sich der Zeiger einmal ganz herum, also 360°. Das sind 6° pro Minute, und 50 Minuten sind 300°. Also gilt: b = π · 16 : 180 · 300. Das sind ungefähr 83,78 cm.',draw(t){const cx=200,cy=250,R=150,e=ph(t,.05,.45),al=e*PI*300/180,a0=-PI/2;g.circle(cx,cy,R+12,C.ink,4);for(let i=0;i<12;i++){const a=i*PI/6;g.line(cx+(R-4)*Math.cos(a),cy+(R-4)*Math.sin(a),cx+(R+8)*Math.cos(a),cy+(R+8)*Math.sin(a),C.ink,3);}if(al>0)g.arc(cx,cy,R-16,a0,a0+al,C.pen,8);g.line(cx,cy,cx+(R-16)*Math.cos(a0+al),cy+(R-16)*Math.sin(a0+al),C.red,6);g.dot(cx,cy,8,C.red);g.seq(t,['Zeiger: r = 16 cm','1 min = 360° : 60 = 6°','50 min = 300°',['b =',{n:'π · 16',d:'180'},'· 300'],{p:'b ≈ 83,78 cm',hl:true}],400,70,85,30,.3,.11);}},
+ {cap:'Achtung: Der Umfang eines Kreissektors, also eines ganzen Tortenstücks, ist mehr als nur der Bogen. Er besteht aus dem Bogen und den zwei geraden Rändern: u = b + 2 · r.',draw(t){const cx=250,cy=340,R=210,a0=-PI/2-PI/5,a1=-PI/2+PI/5;g.sector(cx,cy,R,a0,a1,C.pensoft,null);g.arc(cx,cy,R,a0,a1,C.pen,8);g.line(cx,cy,cx+R*Math.cos(a0),cy+R*Math.sin(a0),C.red,7,ph(t,.2,.35));g.line(cx,cy,cx+R*Math.cos(a1),cy+R*Math.sin(a1),C.red,7,ph(t,.35,.5));g.text('b',cx,cy-R-24,36,C.pen);g.text('r',cx-90,cy-100,32,C.red,'center',ph(t,.25,.35));g.text('r',cx+90,cy-100,32,C.red,'center',ph(t,.4,.5));g.fx('u = b + 2 · r',520,240,52,C.ink,'left',ph(t,.55,.7),true);}},
+ askScene('Jetzt bist du dran! Ein Straßenstück hat die Form eines Kreisbogens. In der Straßenmitte ist der Radius 16 m, der Zentriwinkel ist 50°. Wie lang ist das Straßenstück? Runde auf 2 Dezimalen und gib dein Ergebnis in Metern ein.',{ans:PI*16*50/180,unit:'m',tip:'b = π · r : 180 · α mit r = 16 und α = 50.'},['Straßenstück:','r = 16 m','α = 50°','b = ?'],t=>{const cx=600,cy=420,R=280,al=PI*50/180;g.sector(cx,cy,R,-PI/2-al/2,-PI/2+al/2,C.pensoft,C.ink,3);g.arc(cx,cy,R,-PI/2-al/2,-PI/2+al/2,C.red,10);g.text('50°',cx,cy-60,28,C.ink2);}),
+ solveScene('Auflösung: b = π · 16 : 180 · 50. Das sind ungefähr 13,96 m. Das Straßenstück ist also knapp 14 m lang.',[['b =',{n:'π · r',d:'180'},'· α'],['b =',{n:'π · 16',d:'180'},'· 50'],{p:'b ≈ 13,96 m',hl:true}])
+]},
+{title:'Flächeninhalt des Kreises',sub:'A = π · r²',scenes:[
+ {cap:'In diesem Video geht es um den Flächeninhalt. Die Fläche sagt dir, wie viel Platz innen im Kreis ist, zum Beispiel wie viel Pizza du bekommst. Flächen misst man in Flächeneinheiten, zum Beispiel in cm² oder in m².',draw(t){const cx=400,cy=230,R=165,a=ph(t,.1,.4);g.circle(cx,cy,R,C.ink,5,1,-PI/2,C.mark);ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,2*PI);ctx.clip();ctx.globalAlpha=a*.7;ctx.strokeStyle=C.ink;ctx.lineWidth=1.5;ctx.beginPath();for(let x=cx-R;x<=cx+R;x+=33){ctx.moveTo(x,cy-R);ctx.lineTo(x,cy+R);}for(let y=cy-R;y<=cy+R;y+=33){ctx.moveTo(cx-R,y);ctx.lineTo(cx+R,y);}ctx.stroke();ctx.restore();ctx.globalAlpha=1;g.circle(cx,cy,R,C.ink,5);g.text('Wie viel Platz ist drinnen?',400,440,34,C.ink,'center',ph(t,.4,.5));}},
+ {cap:'Wie rechnet man das aus? Wir schneiden den Kreis wie eine Pizza in gleich große Stücke. Dann legen wir die Stücke abwechselnd nebeneinander, einmal mit der Spitze nach unten und einmal nach oben.',draw(t){const n=8,R=110,w=2*R*Math.sin(PI/n)*(n/2)+R*Math.sin(PI/n);g.pizza(n,ph(t,.25,.75),400,240,R,400-w/2,190);}},
+ {cap:'Je mehr Stücke wir schneiden, desto mehr sieht es aus wie ein Rechteck. Es ist so hoch wie der Radius r. Und es ist so lang wie der halbe Umfang, also π · r.',draw(t){const n=t<.3?8:t<.55?16:32,R=120,th=2*PI/n,w=2*R*Math.sin(th/2)*(n/2)+R*Math.sin(th/2),x0=400-w/2,y0=130;g.pizza(n,1,400,240,R,x0,y0);const a=ph(t,.6,.72);g.line(x0+w+24,y0,x0+w+24,y0+R,C.red,5,a);g.text('r',x0+w+50,y0+R/2,40,C.red,'center',a);g.line(x0,y0+R+40,x0+w,y0+R+40,C.pen,5,a);g.text('halber Umfang = π · r',400,y0+R+80,34,C.pen,'center',a);}},
+ {cap:'Die Fläche eines Rechtecks ist Länge mal Breite. Hier also π · r mal r. Kurz schreibt man: A = π · r². Sprich: Pi mal Radius zum Quadrat. r² bedeutet einfach r mal r.',draw(t){g.fx('A = Länge · Breite',400,100,40,C.ink2,'center',ph(t,.05,.15));g.fx('A = π · r · r',400,200,52,C.ink,'center',ph(t,.2,.32));g.fx('A = π · r²',400,320,76,C.ink,'center',ph(t,.4,.55),true);g.text('r² = r · r',400,425,32,C.ink2,'center',ph(t,.6,.7));}},
+ {cap:'Beispiel: Sam lädt seine Freunde zum Pizzaessen ein. Seine Pizza hat einen Durchmesser von 27 cm. Wie groß ist die Fläche der Pizza?',draw(t){g.circle(200,250,140,C.ink,5,1,-PI/2,C.mark);for(let i=0;i<8;i++){const a=i*PI/4;g.line(200,250,200+140*Math.cos(a),250+140*Math.sin(a),C.ink2,2,ph(t,.05,.2));}g.line(60,250,340,250,C.pen,5,ph(t,.2,.35));g.text('d = 27 cm',200,425,30,C.pen,'center',ph(t,.25,.35));g.seq(t,['Sams Pizza','d = 27 cm',{p:'A = ?',c:C.red}],460,150,85,42,.35,.12);}},
+ {cap:'In der Formel steht r, gegeben ist aber d. Darum rechnen wir zuerst den Radius aus: r = 27 : 2 = 13,5 cm. Dann setzen wir ein: A = π · 13,5². Das sind ungefähr 572,56 cm².',draw(t){g.circle(160,250,110,C.ink,4);g.sector(160,250,110,0,2*PI,C.mark,null);g.line(160,250,270,250,C.red,4);g.text('r',215,230,28,C.red);g.text('d = 27 cm',160,395,30,C.ink2);g.seq(t,[{p:'① r = 27 : 2 = 13,5 cm',c:C.red},'② A = π · r²','A = π · 13,5²',{p:'A ≈ 572,56 cm²',hl:true}],330,110,85,36,.1,.15);}},
+ {cap:'Jetzt bist du Fehler-Detektiv! Die Schulleiterin möchte ein Gruppenfoto mit 800 Kindern in der runden Aula machen. Jedes Kind braucht 0,5 m², zusammen also 400 m². Die Aula hat einen Durchmesser von 20 m. Der Assistent rechnet π · 20² und sagt: Das sind 1256,6 m², das reicht! Aber er hat den Durchmesser statt des Radius verwendet. Richtig ist der Radius 10 m, und die Fläche ist nur rund 314,16 m². Das reicht nicht!',draw(t){g.fx('800 Kinder · 0,5 m² = 400 m²',50,50,32,C.ink2,'left',ph(t,0,.08));g.fx('Aula: d = 20 m',50,110,34,C.ink,'left',ph(t,.06,.14));g.fx('Assistent: π · 20² ≈ 1256,6 m²',50,180,34,C.ink,'left',ph(t,.14,.22));const a=ph(t,.3,.38);g.line(40,180,500,180,C.red,5,a);g.text('✗ d statt r!',520,180,34,C.red,'left',a);g.fx('richtig: r = 10 m',50,260,34,C.ok,'left',ph(t,.45,.53));g.fx('A = π · 10² ≈ 314,16 m²  ✓',50,320,34,C.ok,'left',ph(t,.55,.63));g.fx('314 m² < 400 m²  → zu klein!',50,405,38,C.ink,'left',ph(t,.68,.8),true);}},
+ {cap:'Achtung, Falle: Verdreifacht man den Radius, wird die Fläche nicht dreimal, sondern neunmal so groß, denn 3 · 3 = 9. Beim Verdoppeln wird sie viermal so groß, denn 2 · 2 = 4.',draw(t){g.circle(140,240,40,C.ink,4,1,-PI/2,C.mark);g.text('r',140,310,30,C.red);const a=ph(t,.15,.4);g.circle(400,240,120*a+1,C.ink,4,1,-PI/2,C.pensoft);for(let i=0;i<3;i++)for(let j=0;j<3;j++){const aa=ph(t,.35+(i*3+j)*.03,.42+(i*3+j)*.03);if(aa>0)g.circle(400-80+j*80,240-80+i*80,34*aa,C.ink2,2,1,-PI/2,C.mark);}g.text('3 · r',400,395,30,C.red,'center',a);g.fx('× 9',650,200,64,C.red,'center',ph(t,.7,.8));g.text('(3 · 3 = 9)',650,270,30,C.ink2,'center',ph(t,.72,.82));}},
+ askScene('Jetzt bist du dran! Ein runder Teppich hat einen Radius von 1,20 m. Wie groß ist seine Fläche? Runde auf 2 Dezimalen und gib dein Ergebnis in m² ein.',{ans:PI*1.44,unit:'m²',tip:'Der Radius ist gegeben, also gleich in A = π · r² einsetzen.'},['Teppich:','r = 1,20 m','A = ?'],t=>{g.circle(590,270,140,C.ink,5,1,-PI/2,C.mark);g.circle(590,270,110,C.ink2,2);g.circle(590,270,80,C.ink2,2);g.line(590,270,730,270,C.red,5);g.text('r',660,245,32,C.red);}),
+ solveScene('Auflösung: Der Radius ist gegeben, also setzen wir gleich ein. A = π · 1,20². 1,20 mal 1,20 ist 1,44. Also A = π · 1,44, das sind ungefähr 4,52 m².',['A = π · r²','A = π · 1,20²','A = π · 1,44',{p:'A ≈ 4,52 m²',hl:true}])
+]},
+{title:'Umkehraufgaben',sub:'Vom Ergebnis zurück zum Radius',scenes:[
+ {cap:'In diesem Video drehen wir den Spieß um. Bisher kanntest du den Radius und hast den Umfang oder die Fläche ausgerechnet. Bei Umkehraufgaben ist es umgekehrt: Du kennst das Ergebnis und suchst den Radius. Dazu formen wir die Formel um, wie bei einer Waage. Was wir auf einer Seite machen, machen wir auch auf der anderen.',draw(t){const w=Math.sin(t*6)*0.05*(1-ph(t,.5,.8));ctx.save();ctx.translate(400,300);ctx.rotate(w);g.line(-260,0,260,0,C.ink,6);g.line(-200,0,-200,-40,C.ink2,3);g.line(200,0,200,-40,C.ink2,3);g.text('u',-200,-70,48,C.pen);g.text('2 · π · r',200,-70,44,C.pen);ctx.restore();g.poly([[400,300],[370,380],[430,380]],C.ink,5,1);g.text('| : (2 · π) auf beiden Seiten',400,430,32,C.red,'center',ph(t,.5,.65));g.text('gegeben: u   gesucht: r',400,90,38,C.ink,'center',ph(t,.05,.15));}},
+ {cap:'Wenn der Umfang gegeben ist, starten wir mit u = 2 · π · r. Damit r allein steht, dividieren wir beide Seiten durch (2 · π). So bekommen wir: r = u : (2 · π).',draw(t){g.seq(t,[['u = 2 · π · r','   | : (2 · π)'],{p:['r =',{n:'u',d:'2 · π'}],hl:true}],80,150,160,50,.1,.3);}},
+ {cap:'Beispiel: Ein Geschenkband liegt genau einmal um eine runde Torte. Das Band ist 86 cm lang, also ist der Umfang 86 cm. Wie groß ist der Radius der Torte? r = 86 : (2 · π), das sind ungefähr 13,69 cm, also rund 13,7 cm.',draw(t){g.circle(150,250,100,C.ink,4,1,-PI/2,C.mark);g.circle(150,250,108,C.red,6,ph(t,0,.2));g.line(150,250,250,250,C.pen,4,ph(t,.25,.35));g.text('r = ?',200,225,26,C.pen,'center',ph(t,.25,.35));g.seq(t,['Band: u = 86 cm',['r =',{n:'u',d:'2 · π'}],['r =',{n:'86',d:'2 · π'}],{p:'r ≈ 13,69 cm',hl:true}],310,80,105,38,.2,.15);}},
+ {cap:'Wenn die Fläche gegeben ist, starten wir mit A = π · r². Zuerst dividieren wir durch π, dann bleibt r². Damit wir r bekommen, ziehen wir die Wurzel. Beispiel: Ein runder Teich hat eine Fläche von 23,80 m². Dann ist r die Wurzel aus 23,80 : π, das sind ungefähr 2,75 m.',draw(t){g.seq(t,[['A = π · r²','   | : π'],['r² =',{n:'A',d:'π'},'   | √'],{p:['r = √(A : π)'],hl:true},{p:'Teich: A = 23,80 m²',c:C.pen},'r = √(23,80 : π) ≈ 2,75 m'],70,70,90,36,.05,.15);}},
+ {cap:'Ein Trick: Steht π schon in der Angabe, zum Beispiel A = 16 · π cm², dann kürzt sich π einfach weg. Es bleibt 16 = r², also r = 4 cm. Und bei einem Umfang von 16 · π cm gilt 2 · r = 16, also r = 8 cm.',draw(t){g.seq(t,['A = 16 · π cm²',['16 · π = π · r²','   | : π'],'16 = r²',{p:'r = 4 cm',hl:true,c:C.red}],70,80,80,38,.05,.12);g.seq(t,['u = 16 · π cm','16 · π = 2 · π · r','16 = 2 · r',{p:'r = 8 cm',hl:true,c:C.red}],470,80,80,34,.55,.1);}},
+ {cap:'Beim Kreisbogen geht das genauso. Kennst du die Bogenlänge b und den Winkel α, dann gilt: r = b · 180 : (π · α). Beispiel: Ein Bogen ist 45 mm lang und hat einen Winkel von 73°. Dann ist der Radius 45 · 180 : (π · 73). Das sind ungefähr 35,32 mm, also rund 35 mm.',draw(t){g.fx(['b =',{n:'π · r',d:'180'},'· α'],80,90,40,C.ink2,'left',ph(t,.05,.15));g.fx(['r =',{n:'b · 180',d:'π · α'}],80,210,52,C.ink,'left',ph(t,.2,.35),true);g.fx('Bogen: b = 45 mm, α = 73°',80,310,32,C.pen,'left',ph(t,.4,.5));g.fx(['r =',{n:'45 · 180',d:'π · 73'},'≈ 35,32 mm'],80,400,40,C.ink,'left',ph(t,.55,.7));}},
+ {cap:'Kennst du die Bogenlänge b und den Radius r, bekommst du den Winkel mit α = b · 180 : (π · r). Beispiel: Ein Bogen ist 42 mm lang, der Radius ist 38 mm. Dann ist der Winkel 42 · 180 : (π · 38). Das sind ungefähr 63,33°, also rund 63°.',draw(t){g.fx(['b =',{n:'π · r',d:'180'},'· α'],80,90,40,C.ink2,'left',ph(t,.05,.15));g.fx(['α =',{n:'b · 180',d:'π · r'}],80,210,52,C.ink,'left',ph(t,.2,.35),true);g.fx('Bogen: b = 42 mm, r = 38 mm',80,310,32,C.pen,'left',ph(t,.4,.5));g.fx(['α =',{n:'42 · 180',d:'π · 38'},'≈ 63,33°'],80,400,40,C.ink,'left',ph(t,.55,.7));}},
+ {cap:'Ein Profi-Beispiel in zwei Schritten: Ein Förster misst rund um einen Baumstamm 1,50 m. Wie groß ist die Schnittfläche des Stammes? Zuerst rechnen wir den Radius aus: r = 1,50 : (2 · π), das sind ungefähr 0,2387 m. Dann die Fläche: A = π · 0,2387², das sind ungefähr 0,18 m². Tipp: Erst ganz am Schluss runden!',draw(t){const a=ph(t,0,.15);g.circle(130,240,90,C.ink,4,a,-PI/2,C.mark);for(let i=1;i<4;i++)g.circle(130,240,90-i*20,C.ink2,2,a);g.seq(t,['Baumstamm: u = 1,50 m',{p:['① r =',{n:'1,50',d:'2 · π'},'≈ 0,2387 m'],c:C.pen},{p:'② A = π · 0,2387² ≈ 0,18 m²',c:C.red,hl:true},{p:'Erst am Schluss runden!',c:C.ink2}],270,80,100,34,.12,.16);}},
+ askScene('Jetzt bist du dran! Ein runder Untersetzer hat einen Umfang von 31,4 cm. Wie groß ist sein Radius? Runde auf 2 Dezimalen und gib dein Ergebnis in cm ein.',{ans:31.4/(2*PI),unit:'cm',tip:'Der Umfang ist gegeben, also r = u : (2 · π).'},['Untersetzer:','u = 31,4 cm','r = ?'],t=>{g.circle(590,270,130,C.ink,5,1,-PI/2,C.pensoft);g.circle(590,270,138,C.red,5);ctx.setLineDash([10,8]);g.line(590,270,720,270,C.pen,4);ctx.setLineDash([]);g.text('r = ?',655,245,28,C.pen);}),
+ solveScene('Auflösung: Der Umfang ist gegeben, also r = u : (2 · π). Wir rechnen 31,4 : (2 · π), das sind ungefähr 5,00 cm. Der Radius ist also rund 5 cm.',[['r =',{n:'u',d:'2 · π'}],['r =',{n:'31,4',d:'2 · π'}],{p:'r ≈ 5,00 cm',hl:true}])
+]},
+{title:'Kreissektor & Kreisring',sub:'Plus-Stoff',scenes:[
+ {cap:'In diesem Video geht es um Teile vom Kreis. Ein Tortenstück heißt Kreissektor. Ein Kreis mit einem Loch in der Mitte heißt Kreisring. Und das Stück zwischen einem Bogen und einer geraden Linie heißt Kreissegment. Das ist Plus-Stoff für Profis!',draw(t){const a1=ph(t,.05,.2),a2=ph(t,.25,.4),a3=ph(t,.45,.6);ctx.globalAlpha=a1;g.sector(140,320,180,-PI/2-.45,-PI/2+.45,C.mark,C.ink,3);ctx.globalAlpha=a2;g.circle(400,240,105,C.ink,3,1,-PI/2,C.pensoft);g.circle(400,240,55,C.ink,3,1,-PI/2,C.card);ctx.globalAlpha=a3;const cx=660,cy=370,R=150,s0=-3*PI/4,s1=-PI/4;ctx.beginPath();ctx.moveTo(cx+R*Math.cos(s0),cy+R*Math.sin(s0));ctx.arc(cx,cy,R,s0,s1);ctx.closePath();ctx.fillStyle=C.mark;ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=3;ctx.stroke();ctx.globalAlpha=1;g.text('Kreissektor',140,400,30,C.ink,'center',a1);g.text('Kreisring',400,400,30,C.ink,'center',a2);g.text('Kreissegment',660,400,30,C.ink,'center',a3);}},
+ {cap:'Die Fläche eines Kreissektors ist ein Teil der ganzen Kreisfläche π · r². Der ganze Kreis hat 360°. Darum teilen wir π · r² durch 360 und nehmen das α-mal: A = π · r² : 360 · α.',draw(t){const cx=190,cy=250,R=150,e=ph(t,.1,.45),al=PI*100/180*e;g.circle(cx,cy,R,C.line,3);g.sector(cx,cy,R,-PI/2-al/2,-PI/2+al/2,C.mark,C.ink,3);g.text('α',cx,cy-50,30,C.red,'center',e);g.fx('ganzer Kreis: π · r²',390,140,34,C.ink2,'left',ph(t,.35,.45));g.fx(['A =',{n:'π · r²',d:'360'},'· α'],390,280,50,C.ink,'left',ph(t,.5,.65),true);}},
+ {cap:'Beispiel: Ein Rasensprenger bewässert ein Tortenstück vom Rasen. Der Strahl reicht 10 m weit, und der Sprenger dreht sich nur um 60°. Wie groß ist die nasse Fläche? A = π · 10² : 360 · 60, das sind ungefähr 52,36 m². Das ist genau ein Sechstel vom ganzen Kreis.',draw(t){const cx=190,cy=330,R=220,e=ph(t,.05,.3);g.sector(cx,cy,R,-PI/2-PI/6*e,-PI/2+PI/6*e,C.pensoft,C.ink,3);g.dot(cx,cy,10,C.ink);g.text('60°',cx,cy-60,26,C.red,'center',e);g.text('r = 10 m',cx+80,cy-120,26,C.ink2,'center',e);g.seq(t,['Rasensprenger:','r = 10 m,  α = 60°',['A =',{n:'π · 10²',d:'360'},'· 60'],{p:'A ≈ 52,36 m²',hl:true},{p:'60° : 360° = ein Sechstel',c:C.ink2,s:28}],400,70,85,34,.3,.12);}},
+ {cap:'Kennst du den Bogen b, geht es noch einfacher: A = b · r : 2. Man kann sich den Sektor wie ein Dreieck vorstellen: Fläche ist Grundlinie mal Höhe durch 2. Der Bogen ist dabei wie die Grundlinie und der Radius wie die Höhe.',draw(t){g.sector(180,400,260,-PI/2-.32,-PI/2+.32,C.mark,C.ink,3);g.text('b',180,115,34,C.pen);g.text('r',140,280,32,C.red);const a=ph(t,.3,.45);ctx.globalAlpha=a;g.poly([[380,400],[470,140],[560,400]],C.ink,3,1);ctx.globalAlpha=1;g.line(470,140,470,400,C.red,3,a);g.text('h',490,280,30,C.red,'center',a);g.text('c',470,425,30,C.pen,'center',a);g.fx(['A =',{n:'b · r',d:'2'}],600,230,48,C.ink,'left',ph(t,.5,.65),true);}},
+ {cap:'Ein Kreisring ist ein großer Kreis mit einem Loch. Seine Fläche ist großer Kreis minus kleiner Kreis: A = π · R² − π · r². Beispiel: Ein Brunnenbecken hat außen einen Radius von 6 m und innen von 4 m. A = π · 36 − π · 16, das sind ungefähr 62,83 m².',draw(t){const cx=170,cy=250;g.circle(cx,cy,150,C.ink,4,1,-PI/2,C.pensoft);g.circle(cx,cy,100,C.ink,4,1,-PI/2,C.card);g.line(cx,cy,cx+150,cy,C.red,4,ph(t,.05,.2));g.line(cx,cy,cx,cy-100,C.pen,4,ph(t,.1,.25));g.text('R',cx+120,cy-18,28,C.red);g.text('r',cx-16,cy-60,28,C.pen);g.seq(t,[{p:'A = π · R² − π · r²',hl:true},'Brunnen: R = 6 m, r = 4 m','A = π · 36 − π · 16','A = π · 20 ≈ 62,83 m²'],370,110,90,34,.2,.14);}},
+ {cap:'Beispiel Straßenkurve: Eine Straße ist 9 m breit. Am äußeren Rand hat die Kurve einen Radius von 144 m, und sie hat einen Winkel von 77°. Am inneren Rand ist der Radius 144 − 9 = 135 m. Beide Ränder zusammen sind rund 374,95 m lang. Die Straßenfläche ist ein Ringstück und rund 1687,27 m² groß.',draw(t){const cx=400,cy=250,R=170,r=170*135/144,al=PI*77/180,a0=-PI/2-al/2,a1=-PI/2+al/2,e=ph(t,0,.2);ctx.beginPath();ctx.arc(cx,cy,R,a0,a0+(a1-a0)*e);ctx.arc(cx,cy,r,a0+(a1-a0)*e,a0,true);ctx.closePath();ctx.fillStyle=C.mark;ctx.fill();g.arc(cx,cy,R,a0,a0+(a1-a0)*e,C.pen,5);g.arc(cx,cy,r,a0,a0+(a1-a0)*e,C.pen,5);g.text('77°',cx,cy-30,24,C.ink2,'center',e);ctx.globalAlpha=.5;g.line(cx,cy,cx+R*Math.cos(a0),cy+R*Math.sin(a0),C.ink2,2,e);g.line(cx,cy,cx+R*Math.cos(a1),cy+R*Math.sin(a1),C.ink2,2,e);ctx.globalAlpha=1;g.seq(t,['r innen = 144 − 9 = 135 m','b außen = π · 144 : 180 · 77 ≈ 193,52 m','b innen = π · 135 : 180 · 77 ≈ 181,43 m',{p:'Leitschienen ≈ 374,95 m',c:C.pen},{p:'A = (π·144² − π·135²) : 360 · 77 ≈ 1687,27 m²',c:C.red,s:25}],40,285,38,26,.2,.12);}},
+ {cap:'Ein Kreissegment wird von einem Bogen und einer geraden Linie, der Sehne s, begrenzt. Seine Fläche ist Sektor minus Dreieck. Beispiel: Der Radius ist 40 mm und der Winkel 90°. Der Sektor ist ein Viertelkreis: π · 40² : 4, das sind ungefähr 1256,64 mm². Das Dreieck ist rechtwinklig: 40 · 40 : 2 = 800 mm². Sektor minus Dreieck ergibt ungefähr 456,64 mm².',draw(t){const cx=200,cy=330,R=210,a0=-PI/2-PI/4,a1=-PI/2+PI/4,p0=[cx+R*Math.cos(a0),cy+R*Math.sin(a0)],p1=[cx+R*Math.cos(a1),cy+R*Math.sin(a1)];const e=ph(t,0,.2);ctx.globalAlpha=e;g.sector(cx,cy,R,a0,a1,C.pensoft,C.ink,3);ctx.globalAlpha=1;const e2=ph(t,.2,.4);if(e2>0){ctx.globalAlpha=e2;ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();ctx.fillStyle=C.mark;ctx.fill();ctx.globalAlpha=1;}g.line(p0[0],p0[1],p1[0],p1[1],C.red,5,ph(t,.15,.3));g.text('s',cx,p0[1]+26,30,C.red,'center',ph(t,.2,.3));g.text('90°',cx,cy-40,24,C.ink2);g.seq(t,['r = 40 mm, α = 90°','Segment = Sektor − Dreieck','Sektor: π · 40² : 4 ≈ 1256,64 mm²','Dreieck: 40 · 40 : 2 = 800 mm²',{p:'A ≈ 456,64 mm²',hl:true}],440,80,70,28,.35,.11);}},
+ askScene('Jetzt bist du dran! Ein Tortenstück hat einen Radius von 12 cm und einen Winkel von 45°. Wie groß ist die Fläche des Tortenstücks? Runde auf 2 Dezimalen und gib dein Ergebnis in cm² ein.',{ans:PI*144*45/360,unit:'cm²',tip:'A = π · r² : 360 · α mit r = 12 und α = 45.'},['Tortenstück:','r = 12 cm','α = 45°','A = ?'],t=>{const cx=600,cy=400,R=260,al=PI/4;g.sector(cx,cy,R,-PI/2-al/2,-PI/2+al/2,C.mark,C.ink,3);g.text('45°',cx,cy-70,28,C.red);}),
+ solveScene('Auflösung: A = π · 12² : 360 · 45. 12² ist 144, und 45° ist ein Achtel vom Kreis. Also A = π · 144 : 8, das sind ungefähr 56,55 cm².',[['A =',{n:'π · 12²',d:'360'},'· 45'],'= π · 144 : 8',{p:'A ≈ 56,55 cm²',hl:true}])
+]},
+{title:'Vernetzte Aufgaben',sub:'Laufbahn, Erde, Quadrat vs. Kreis',scenes:[
+ {cap:'In diesem Video verbinden wir alles, was du schon kannst. Viele Aufgaben bestehen aus mehreren Teilen. So knackst du jede Textaufgabe: Erstens eine Skizze machen. Zweitens schauen, ob r oder d gegeben ist. Drittens die passende Formel aufschreiben. Viertens einsetzen und rechnen. Fünftens Einheit und Antwortsatz nicht vergessen.',draw(t){['① Skizze machen','② r oder d gegeben?','③ Formel aufschreiben','④ Einsetzen und rechnen','⑤ Einheit + Antwortsatz'].forEach((s,i)=>{const a=ph(t,.05+i*.13,.15+i*.13);g.fx(s,140,80+i*80,40,i%2?C.pen:C.ink,'left',a,i===4);});}},
+ {cap:'Beispiel: Eine Schülergruppe läuft Runden um ein Volleyballfeld. Es ist 18 m lang und 9 m breit. An den Längsseiten laufen sie gerade auf der Linie, an den Breitseiten im Halbkreis. Wie lang ist eine Runde? Zwei Halbkreise sind zusammen ein ganzer Kreis mit dem Durchmesser 9 m. Also: 2 · 18 + π · 9, das sind ungefähr 64,27 m.',draw(t){const x=250,y=140,L=300,H=150;ctx.fillStyle=C.mark;ctx.globalAlpha=.4;ctx.fillRect(x,y,L,H);ctx.globalAlpha=1;ctx.strokeStyle=C.ink;ctx.lineWidth=3;ctx.strokeRect(x,y,L,H);g.line(x+L/2,y,x+L/2,y+H,C.ink2,2);g.line(x,y,x+L,y,C.pen,7,ph(t,.05,.2));g.line(x+L,y+H,x,y+H,C.pen,7,ph(t,.2,.35));const e=ph(t,.35,.55);if(e>0){g.arc(x+L,y+H/2,H/2,-PI/2,-PI/2+PI*e,C.red,7);g.arc(x,y+H/2,H/2,PI/2,PI/2+PI*e,C.red,7);}g.text('18 m',x+L/2,y-24,28,C.pen);g.text('9 m',x+L+H/2+40,y+H/2,26,C.red,'left');g.fx('Runde = 2 · 18 + π · 9 ≈ 64,27 m',400,390,38,C.ink,'center',ph(t,.6,.75),true);}},
+ {cap:'Ein Schüler aus der Gruppe ist faul und läuft immer einen Meter weiter innen. Die Geraden bleiben gleich lang, aber die Halbkreise werden kleiner: Ihr Durchmesser ist jetzt 7 m statt 9 m. Pro Runde spart er π · 2, das sind ungefähr 6,28 m. In 10 Runden spart er also rund 62,83 m.',draw(t){const x=250,y=140,L=300,H=150,h2=H*7/9;ctx.strokeStyle=C.ink2;ctx.lineWidth=3;ctx.strokeRect(x,y,L,H);g.arc(x+L,y+H/2,H/2,-PI/2,PI/2,C.pen,6);g.arc(x,y+H/2,H/2,PI/2,3*PI/2,C.pen,6);const e=ph(t,.15,.4);if(e>0){g.arc(x+L,y+H/2,h2/2,-PI/2,-PI/2+PI*e,C.red,5);g.arc(x,y+H/2,h2/2,PI/2,PI/2+PI*e,C.red,5);}g.seq(t,['normal: 36 + π · 9 ≈ 64,27 m','1 m innen: 36 + π · 7 ≈ 57,99 m',{p:'gespart: π · 2 ≈ 6,28 m pro Runde',hl:true}],120,345,44,30,.4,.12);}},
+ {cap:'Stell dir vor, ein Seil liegt straff um den Äquator der Erde. Wir verlängern es um nur einen Meter. Wie hoch hebt es sich dann überall ab? Für den Umfang gilt u = 2 · π · r. Wird der Umfang einen Meter länger, wächst der Radius um einen Meter geteilt durch (2 · π). Das sind rund 16 cm. Ein Hase könnte durchkriechen, egal wie groß die Kugel ist!',draw(t){const cx=230,cy=250,R=150;g.circle(cx,cy,R,C.ink,4,1,-PI/2,C.pensoft);g.circle(cx,cy,R+ph(t,.15,.35)*16,C.red,3);g.text('+ 1 m Seil',cx,cy-R-40,28,C.red,'center',ph(t,.2,.3));g.seq(t,['u = 2 · π · r',['mehr Radius =',{n:'1 m',d:'2 · π'}],{p:'≈ 0,16 m = 16 cm',hl:true},{p:'Egal ob Erde oder Ball!',c:C.ink2}],440,110,90,32,.35,.13);}},
+ {cap:'Die Erde ist ungefähr eine Kugel mit einem Radius von 6370 km. Österreich reicht von etwa 46,6° bis 49,0° nördlicher Breite. Wie lang ist Österreich von Süden nach Norden? Der Unterschied ist 2,4°, und das ist ein Kreisbogen: b = π · 6370 : 180 · 2,4, das sind ungefähr 266,83 km.',draw(t){const cx=180,cy=400,R=300;g.arc(cx,cy,R,-PI/2,0,C.ink,4);g.line(cx,cy,cx+R,cy,C.ink2,2);g.text('Äquator',cx+R-50,cy+24,24,C.ink2);g.text('Nordpol',cx+10,cy-R-20,24,C.ink2,'left');const a1=-46.6*PI/180,a2=-49*PI/180;g.line(cx,cy,cx+R*Math.cos(a1),cy+R*Math.sin(a1),C.ink2,2,ph(t,.1,.25));g.line(cx,cy,cx+R*Math.cos(a2),cy+R*Math.sin(a2),C.ink2,2,ph(t,.1,.25));g.arc(cx,cy,R,a2,a1,C.red,10);g.text('Österreich',cx+R*Math.cos(a2)+16,cy+R*Math.sin(a2)-14,24,C.red,'left',ph(t,.2,.3));g.seq(t,['49,0° − 46,6° = 2,4°','b = π · 6370 : 180 · 2,4',{p:'b ≈ 266,83 km',hl:true}],470,180,80,32,.3,.14);}},
+ {cap:'Stell dir vor, du hast eine Schnur, die 12 cm lang ist. Einmal legst du damit ein Quadrat, einmal einen Kreis. Das Quadrat hat die Seite 3 cm und 9 cm² Fläche. Der Kreis hat einen Radius von rund 1,91 cm und rund 11,46 cm² Fläche. Bei gleichem Umfang hat der Kreis immer die größere Fläche!',draw(t){ctx.strokeStyle=C.ink;ctx.lineWidth=4;const s=150,a=ph(t,0,.2);ctx.globalAlpha=a;ctx.fillStyle=C.pensoft;ctx.fillRect(80,110,s,s);ctx.strokeRect(80,110,s,s);ctx.globalAlpha=1;g.circle(560,185,2*s/PI,C.ink,4,ph(t,.2,.4),-PI/2,C.mark);g.text('u = 12 cm',155,300,28,C.ink2,'center',a);g.text('u = 12 cm',560,300,28,C.ink2,'center',ph(t,.3,.4));g.text('A = 9 cm²',155,360,36,C.pen,'center',ph(t,.4,.5));g.text('A ≈ 11,46 cm²',560,360,36,C.red,'center',ph(t,.5,.6));g.fx('Der Kreis gewinnt!',400,430,38,C.ink,'center',ph(t,.65,.8),true);}},
+ askScene('Jetzt bist du dran! Ein Spielfeld ist 20 m lang und 10 m breit. Ihr lauft an den Längsseiten gerade und an den beiden Enden im Halbkreis. Wie lang ist eine Runde? Runde auf 2 Dezimalen und gib dein Ergebnis in Metern ein.',{ans:40+10*PI,unit:'m',tip:'Zwei Geraden (2 · 20) plus zwei Halbkreise, die zusammen einen Kreis mit d = 10 m ergeben.'},['Spielfeld:','20 m lang','10 m breit','Runde = ?'],t=>{stadium(470,200,160,100);g.line(470,200,630,200,C.pen,6);g.line(470,300,630,300,C.pen,6);g.text('20 m',550,180,26,C.pen);g.text('10 m',700,250,24,C.red,'left');}),
+ solveScene('Auflösung: Die zwei Geraden sind zusammen 2 · 20 m, also 40 m. Die zwei Halbkreise ergeben zusammen einen ganzen Kreis mit dem Durchmesser 10 m, also π · 10, das sind ungefähr 31,42 m. Zusammen ist eine Runde rund 71,42 m lang.',['Geraden: 2 · 20 = 40 m','Halbkreise: π · 10 ≈ 31,42 m',{p:'Runde ≈ 71,42 m',hl:true}])
+]}
+];
+const VID_FOR={u:1,b:2,a:3,k:4,p:5,v:6};
+const LILLI=[
+ ['Hi, ich bin Lilli und möchte dich beim Lernen in Mathe unterstützen. Unser Thema ist Pi. Schön, dass du da bist!','Super gemacht! Jetzt weißt du, was Pi ist. Im nächsten Video rechnen wir damit den Umfang aus. Bis gleich, deine Lilli.'],
+ ['Hi, hier ist wieder Lilli! Heute finden wir heraus, wie lang der Rand eines Kreises ist, also sein Umfang. Dazu brauchen wir unser Pi. Schön, dass du da bist!','Toll! Jetzt kannst du jeden Umfang berechnen, egal ob Radius oder Durchmesser gegeben ist. Als Nächstes schauen wir uns Kreisbögen an. Bis gleich, deine Lilli.'],
+ ['Hi, hier ist Lilli! Heute nehmen wir nur ein Stück vom Kreisrand, den Kreisbogen. Du wirst sehen, wie praktisch das bei Laufbahnen und Uhren ist. Schön, dass du da bist!','Prima! Kreisbögen sind jetzt kein Problem mehr für dich. Im nächsten Video geht es um die Fläche, und es gibt Pizza. Bis gleich, deine Lilli.'],
+ ['Hi, Lilli hier! Heute wird es lecker: Wir schneiden eine Pizza in Stücke und finden so heraus, wie groß die Fläche eines Kreises ist. Schön, dass du da bist!','Super! Merk dir: Pi mal Radius zum Quadrat, und immer zuerst den Radius ausrechnen. Als Nächstes lösen wir Umkehraufgaben. Bis gleich, deine Lilli.'],
+ ['Hi, hier ist Lilli! Heute drehen wir den Spieß um: Wir kennen das Ergebnis und suchen den Radius. Das ist wie Detektivarbeit, und du schaffst das! Schön, dass du da bist!','Klasse, du bist jetzt ein echter Formel-Detektiv! Im nächsten Video kommt der Plus-Stoff mit Tortenstücken und Ringen. Bis gleich, deine Lilli.'],
+ ['Hi, hier ist Lilli! Heute geht es um Tortenstücke, Ringe und Straßenkurven, also um Kreissektor, Kreisring und Kreissegment. Das ist Stoff für Profis. Schön, dass du da bist!','Wow, das war Profi-Niveau! Im letzten Video verbinden wir alles miteinander. Bis gleich, deine Lilli.'],
+ ['Hi, hier ist Lilli! Heute verbinden wir alles, was du schon kannst: Laufbahnen, ein Seil um die ganze Erde und sogar Österreich auf der Weltkugel. Schön, dass du da bist!','Geschafft! Du hast alle Videos gesehen. Jetzt ab ins Training, ich drücke dir die Daumen für die Schularbeit! Deine Lilli.']
+];
+
+let P={v:0,s:0,el:0,playing:false,last:0,spoke:true,ended:false};
+const voiceOK='speechSynthesis' in window && typeof SpeechSynthesisUtterance!=='undefined';
+if(!voiceOK) $('#voicewrap').hidden=true;
+let deVoice=null;
+function voiceScore(v){let s=0;if(/de[-_]AT/i.test(v.lang))s+=2;if(/natural|neural|online|premium|enhanced|google|siri/i.test(v.name))s+=10;if(/anna|petra|katja|ingrid|hedda|helena|marlene|vicki|seraphina|amala|elke|sabina|louisa|klara|katrin|leonie/i.test(v.name))s+=4;if(/stefan|markus|yannick|hans|conrad|killian|florian|jonas|michael/i.test(v.name))s-=1;return s;}
+function pickVoice(){if(!voiceOK)return;const vs=speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang)).sort((a,b)=>voiceScore(b)-voiceScore(a));const sel=$('#voicesel');sel.innerHTML=vs.map(v=>`<option value="${v.name}">${v.name.replace(/Microsoft |Google |\(.*?\)/g,'').trim()||v.name}</option>`).join('');sel.hidden=vs.length<2;deVoice=vs.find(v=>v.name===DB.voice)||vs[0]||null;if(deVoice)sel.value=deVoice.name;}
+if(voiceOK){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;$('#voicesel').onchange=e=>{deVoice=speechSynthesis.getVoices().find(v=>v.name===e.target.value)||deVoice;DB.voice=deVoice&&deVoice.name;save();if(!P.playing)sayRaw(['Hi, ich bin Lilli!','So klinge ich. Viel Spaß beim Lernen!']);};}
+const LET={u:'Uh',d:'Deh',r:'Err',b:'Beh',A:'Ah',s:'Ess',h:'Ha',R:'groß Err',M:'Emm',c:'Zeh'};
+const NW1=['null','eins','zwei','drei','vier','fünf','sechs','sieben','acht','neun','zehn','elf','zwölf','dreizehn','vierzehn','fünfzehn','sechzehn','siebzehn','achtzehn','neunzehn'],NW10=['','','zwanzig','dreißig','vierzig','fünfzig','sechzig','siebzig','achtzig','neunzig'];
+function nw(n){n=Math.floor(n);if(n<20)return NW1[n];if(n<100){const e=n%10,z=Math.floor(n/10);return (e?(e===1?'ein':NW1[e])+'und':'')+NW10[z];}if(n<1000){const h=Math.floor(n/100),r=n%100;return (h===1?'':NW1[h])+'hundert'+(r?nw(r):'');}if(n<1e6){const t=Math.floor(n/1000),r=n%1000;return (t===1?'':nw(t))+'tausend'+(r?nw(r):'');}const m=Math.floor(n/1e6),r=n%1e6;return (m===1?'eine Million':nw(m)+' Millionen')+(r?' '+nw(r):'');}
+function numWords(s){return s.replace(/(\d+)(?:,(\d+))?/g,(m,i,d,off,all)=>{if(!d&&+i===1){const rest=all.slice(off+m.length);if(/^\s+(Meter|Zentimeter|Millimeter|Kilometer|Dezimeter|Grad\b)/.test(rest))return 'ein';if(/^\s+(Metern|Zentimetern|Millimetern|Kilometern)/.test(rest))return 'einem';}return nw(+i)+(d?' Komma '+d.split('').map(x=>NW1[+x]).join(' '):'');});}
+const DAT={'mm²':'Quadratmillimetern','cm²':'Quadratzentimetern','dm²':'Quadratdezimetern','m²':'Quadratmetern',km:'Kilometern',dm:'Dezimetern',cm:'Zentimetern',mm:'Millimetern',m:'Metern'};
+function speakify(s){return numWords(s
+ .replace(/\s*\(gesprochen[^)]*\)/g,'')
+ .replace(/(\d) (?=\d{3}\b)/g,'$1')
+ .replace(/\b(von|mit|aus)((?: rund| ungefähr| etwa)?) (\d+(?:,\d+)?) ?(mm²|cm²|dm²|m²|km|dm|cm|mm|m)(?![\p{L}²])/gu,(m,p,q,n,u)=>p+q+' '+n+' '+(n==='1'?DAT[u].replace(/n$/,''):DAT[u]))
+ .replace(/(\d)\s?mm²/g,'$1 Quadratmillimeter').replace(/(\d)\s?cm²/g,'$1 Quadratzentimeter').replace(/(\d)\s?dm²/g,'$1 Quadratdezimeter').replace(/(\d)\s?km²/g,'$1 Quadratkilometer').replace(/(\d)\s?m²/g,'$1 Quadratmeter')
+ .replace(/\bin cm²/g,'in Quadratzentimetern').replace(/\bin m²/g,'in Quadratmetern').replace(/\bcm²/g,'Quadratzentimeter').replace(/\bm²/g,'Quadratmeter')
+ .replace(/(\d)\s?km\b/g,'$1 Kilometer').replace(/(\d)\s?dm\b/g,'$1 Dezimeter').replace(/(\d)\s?cm\b/g,'$1 Zentimeter').replace(/(\d)\s?mm\b/g,'$1 Millimeter').replace(/(\d)\s?m\b/g,'$1 Meter')
+ .replace(/\bin cm\b/g,'in Zentimetern').replace(/\bcm\b/g,'Zentimeter').replace(/\bmm\b/g,'Millimeter').replace(/\bkm\b/g,'Kilometer')
+ .replace(/R²/g,'R hoch zwei').replace(/r²/g,'r hoch zwei').replace(/d²/g,'d hoch zwei').replace(/(\d)²/g,'$1 hoch zwei')
+ .replace(/π/g,'Pi').replace(/α/g,'Alpha')
+ .replace(/\s*·\s*/g,' mal ').replace(/ : /g,' durch ').replace(/ = /g,' ist gleich ').replace(/([\p{L}²]) ≈ /gu,'$1 ist ungefähr ').replace(/\s*≈\s*/g,' ungefähr ').replace(/\s*−\s*/g,' minus ').replace(/ \+ /g,' plus ').replace(/ < /g,' kleiner als ').replace(/ > /g,' größer als ').replace(/°/g,' Grad').replace(/√/g,'Wurzel aus ').replace(/\(/g,' Klammer auf ').replace(/\)/g,' Klammer zu ').replace(/[→✓✗]/g,' ')
+ .replace(/(?<![\p{L}\d])([udrbAshRMc])(?![\p{L}\d])/gu,(m,x)=>LET[x]))
+ 
+ .replace(/\s+([.,!?:])/g,'$1').replace(/\s{2,}/g,' ');}
+function sayRaw(parts){speechSynthesis.cancel();P.spoke=false;parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=deVoice?deVoice.lang:'de-AT';if(deVoice)u.voice=deVoice;u.rate=.86;u.pitch=1.12;u.volume=.95;if(i===parts.length-1)u.onend=u.onerror=()=>{P.spoke=true;};speechSynthesis.speak(u);});}
+function speak(text){if(!voiceOK||!$('#voice').checked){P.spoke=true;return;}const v=VIDEOS[P.v],last=P.s===v.scenes.length-1;let t=text;const L=LILLI[P.v]||LILLI[0];if(P.s===0)t=L[0]+' '+t;if(last)t+=' '+L[1];const parts=speakify(t).split(/(?<=[.!?:])\s+/).filter(Boolean);sayRaw(parts);}
+const dur=sc=>Math.max(5000,sc.cap.length*62);
+
+function buildList(){const L=$('#vidlist');L.innerHTML='';VIDEOS.forEach((v,i)=>{const b=document.createElement('button');b.className=DB.seen[i]?'seen':'';b.setAttribute('aria-current',i===P.v);b.innerHTML=`<span class="n">${DB.seen[i]?'✓':i+1}</span><span><b>${v.title}</b><small>${v.sub} · ${v.scenes.length} Schritte</small></span>`;b.onclick=()=>loadVideo(i,true);L.appendChild(b);});}
+function buildSegs(){const S=$('#segs');S.innerHTML='';VIDEOS[P.v].scenes.forEach((_,i)=>{const s=document.createElement('span');s.innerHTML='<i></i>';s.title='Schritt '+(i+1);s.onclick=()=>goScene(i);S.appendChild(s);});}
+function loadVideo(i,auto){P.v=i;P.s=0;P.el=0;P.ended=false;$('#endcard').hidden=true;buildList();buildSegs();setCap();if(auto)play();else{pause();}render();}
+function setCap(){askState();const v=VIDEOS[P.v];$('#cap').innerHTML=`<span class="who">Lilli erklärt · Video ${P.v+1} · ${v.title} · Schritt ${P.s+1} von ${v.scenes.length}</span>${v.scenes[P.s].cap}`;}
+function goScene(i){const n=VIDEOS[P.v].scenes.length;P.s=clamp(i,0,n-1);P.el=0;P.ended=false;$('#endcard').hidden=true;setCap();if(P.playing)speak(VIDEOS[P.v].scenes[P.s].cap);render();}
+function play(){if(P.ended){P.s=0;P.el=0;P.ended=false;$('#endcard').hidden=true;setCap();}P.playing=true;$('#bigplay').hidden=true;$('#play').textContent='⏸';$('#play').setAttribute('aria-label','Pause');P.last=performance.now();speak(VIDEOS[P.v].scenes[P.s].cap);requestAnimationFrame(loop);}
+function pause(){P.playing=false;$('#play').textContent='▶';$('#play').setAttribute('aria-label','Abspielen');if(voiceOK)speechSynthesis.cancel();P.spoke=true;}
+function finish(){pause();P.ended=true;DB.seen[P.v]=1;save();buildList();const E=$('#endcard');E.hidden=false;E.innerHTML='';const r=document.createElement('button');r.className='btn ghost';r.textContent='Nochmal ansehen';r.onclick=()=>play();E.appendChild(r);if(P.v<VIDEOS.length-1){const n=document.createElement('button');n.className='btn';n.textContent='Nächstes Video: '+VIDEOS[P.v+1].title;n.onclick=()=>loadVideo(P.v+1,true);E.appendChild(n);}const tr=document.createElement('button');tr.className='btn warn';tr.textContent='Jetzt üben';const topic=Object.keys(VID_FOR).find(k=>VID_FOR[k]===P.v);tr.onclick=()=>{showTab('train');if(topic)setMode(topic);};E.appendChild(tr);}
+const ASK={tries:0,done:false,hold:0};
+function askState(){const sc=VIDEOS[P.v].scenes[P.s],box=$('#askbox');if(!sc.ask){box.hidden=true;return;}box.hidden=false;ASK.tries=0;ASK.done=false;ASK.hold=0;const i=$('#askinp');i.value='';i.disabled=false;$('#askcheck').disabled=false;$('#askshow').disabled=false;$('#askunit').textContent=sc.ask.unit;$('#askfb').innerHTML='';}
+function lilliSay(s){if(voiceOK&&$('#voice').checked)sayRaw([speakify(s)]);else P.spoke=true;}
+function resume(){P.playing=true;$('#bigplay').hidden=true;$('#play').textContent='⏸';$('#play').setAttribute('aria-label','Pause');P.last=performance.now();requestAnimationFrame(loop);}
+function finishAsk(){const sc=VIDEOS[P.v].scenes[P.s];ASK.done=true;$('#askinp').disabled=true;$('#askcheck').disabled=true;$('#askshow').disabled=true;P.el=Math.max(P.el,dur(sc));ASK.hold=performance.now()+1800;if(!P.playing)resume();}
+function askCheck(){const sc=VIDEOS[P.v].scenes[P.s];if(!sc.ask||ASK.done)return;const x=parseNum($('#askinp').value),a=sc.ask;if(x===null){$('#askfb').innerHTML='<p class="askmsg no">Gib eine Zahl ein, zum Beispiel 4,71.</p>';return;}const tol=a.tol!==undefined?a.tol:Math.max(0.011,Math.abs(a.ans)*0.003);
+ if(Math.abs(x-a.ans)<=tol||(a.tol===undefined&&bookOk($('#askinp').value,x,a.ans))){$('#askfb').innerHTML='<p class="askmsg ok"><b>Richtig, super gemacht!</b> Gleich zeigt dir Lilli den Rechenweg.</p>';lilliSay(pick(['Richtig! Super gemacht!','Ja, genau! Das hast du toll gerechnet!','Perfekt, das stimmt!']));finishAsk();}
+ else{ASK.tries++;$('#askfb').innerHTML=`<p class="askmsg no"><b>Noch nicht ganz.</b> ${ASK.tries>=2?'Tipp: '+a.tip+' Probier es nochmal oder lass dir die Lösung zeigen.':'Probier es nochmal!'}</p>`;lilliSay(ASK.tries>=2?'Fast! Schau dir den Tipp an.':'Hmm, noch nicht ganz. Probier es nochmal!');}}
+$('#askcheck').onclick=askCheck;$('#askinp').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();askCheck();}});
+$('#askshow').onclick=()=>{if(ASK.done)return;$('#askfb').innerHTML='<p class="askmsg">Kein Problem, Lilli zeigt dir jetzt, wie es geht.</p>';lilliSay('Kein Problem, ich zeige dir, wie es geht.');finishAsk();};
+function loop(now){if(!P.playing)return;const dt=Math.min(100,now-P.last);P.last=now;P.el+=dt;const sc=VIDEOS[P.v].scenes[P.s];if(P.el>=dur(sc)&&P.spoke&&(!sc.ask||ASK.done)&&now>=ASK.hold){if(P.s<VIDEOS[P.v].scenes.length-1){P.s++;P.el=0;setCap();speak(VIDEOS[P.v].scenes[P.s].cap);}else{P.el=dur(sc);render();finish();return;}}render();requestAnimationFrame(loop);}
+function render(){const sc=VIDEOS[P.v].scenes[P.s];const d=dur(sc);const t=clamp(P.el/(d*0.85));const W=cv.width;ctx.setTransform(W/800,0,0,W/800,0,0);g.bg();try{sc.draw(P.playing||P.el>0?t:1);}catch(e){console.error(e);}document.querySelectorAll('#segs i').forEach((el,i)=>el.style.width=(i<P.s?100:i===P.s?clamp(P.el/d)*100:0)+'%');}
+function resize(){const r=cv.getBoundingClientRect();if(!r.width)return;const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.width*0.6*dpr);render();}
+$('#play').onclick=()=>P.playing?pause():play();$('#bigplay').onclick=play;
+$('#prev').onclick=()=>goScene(P.s-1);$('#next').onclick=()=>goScene(P.s+1);
+$('#voice').onchange=()=>{if(!$('#voice').checked&&voiceOK){speechSynthesis.cancel();P.spoke=true;}};
+window.addEventListener('resize',resize);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{refreshColors();render();});
+new MutationObserver(()=>{refreshColors();render();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* ---------- Training ---------- */
+const Rn=(a,b,d=0)=>{const f=10**d;return Math.round((a+Math.random()*(b-a))*f)/f;};
+const In=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const F=(x,d=2)=>(Math.round(x*10**d)/10**d).toFixed(d).replace('.',',');
+const N=x=>String(x).replace('.',',');
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const TOPICS={u:'Umfang',b:'Kreisbogen',a:'Fläche',k:'Umkehraufgaben',e:'Einheiten',v:'Vernetzt',p:'Sektor & Ring'};
+const LEN={mm:0.001,cm:0.01,dm:0.1,m:1,km:1000};
+const fmtN=x=>{let t=String(+(+x).toPrecision(10));if(/e/.test(t))t=(+x).toFixed(9).replace(/0+$/,'');const [i,d]=t.split('.');return i.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+(d?','+d:'');};
+const decOf=x=>{const t=String(+(+x).toPrecision(10));const i=t.indexOf('.');return i<0?0:Math.min(9,t.length-i-1);};
+const Z={u:'Z1',b:'Z2',a:'Z3',k:'Z4',e:'Z1–Z4',v:'Z1–Z4',p:'Plus'};
+function mc(text,good,bad,steps){const opts=shuffle([good,...bad]);return {mc:true,text,opts,ok:opts.indexOf(good),steps};}
+
+const GEN={
+u:[
+ ()=>{const un=pick(['cm','m','mm']),r=Rn(1.5,40,1),a=2*PI*r;return {text:`Berechne den Umfang eines Kreises mit dem Radius r = ${N(r)} ${un}.`,ans:a,unit:un,fig:{k:'r',l:`r = ${N(r)} ${un}`},tip:'u = 2 · π · r',steps:['u = 2 · π · r',`u = 2 · π · ${N(r)}`,`u ≈ ${F(a)} ${un}`],traps:[{v:PI*r,m:'Du hast π · r gerechnet. Mit dem Radius brauchst du u = 2 · π · r.'},{v:PI*r*r,m:'Das ist die Fläche (π · r²), nicht der Umfang.'}]};},
+ ()=>{const un=pick(['cm','m','dm']),d=Rn(2,60,1),a=PI*d;return {text:`Berechne den Umfang eines Kreises mit dem Durchmesser d = ${N(d)} ${un}.`,ans:a,unit:un,fig:{k:'d',l:`d = ${N(d)} ${un}`},tip:'u = π · d',steps:['u = π · d',`u = π · ${N(d)}`,`u ≈ ${F(a)} ${un}`],traps:[{v:2*PI*d,m:'Du hast den Durchmesser wie einen Radius verwendet (2 · π · d). Richtig ist u = π · d.'}]};},
+ ()=>{const d=pick([0.8,1,1.2,1.4,1.5,1.6,1.8,2.1,2.4]),a=PI*d;return {text:`Ein kreisrundes Tischtuch hat den Durchmesser d = ${N(d.toFixed(2))} m. Wie lang ist sein Saum (die Stoffkante)?`,ans:a,unit:'m',fig:{k:'d',l:`d = ${N(d.toFixed(2))} m`},tip:'Saum = Umfang = π · d',steps:['Saum = Umfang','u = π · d',`u = π · ${N(d)}`,`u ≈ ${F(a)} m`]};},
+ ()=>{const z=pick([16,18,20,24,26,28,29]),d=z*2.54,a=PI*d;return {text:`Ein Fahrrad hat ${z}″-Räder (1″ = 2,54 cm). Welchen Weg legt es bei einer Radumdrehung zurück?`,ans:a,unit:'cm',fig:{k:'d',l:`d = ${z}″`},tip:'Zuerst d in cm umrechnen, dann u = π · d',steps:[`d = ${z} · 2,54 = ${F(d)} cm`,'u = π · d',`u = π · ${F(d)}`,`u ≈ ${F(a)} cm`],traps:[{v:PI*z,m:'Du musst die Zoll zuerst in cm umrechnen (· 2,54).'}]};},
+ ()=>{const z=pick([26,28,29]),km=Rn(1,5,1),u=PI*z*0.0254,n=km*1000/u;return {text:`Wie oft dreht sich ein ${z}″-Rad (1″ = 2,54 cm) auf einer Strecke von ${N(km)} km? Runde auf ganze Umdrehungen.`,ans:n,unit:'Umdrehungen',dec:0,tol:Math.max(2.01,n*0.003),fig:{k:'d',l:`d = ${z}″`},tip:'Umfang in m ausrechnen, dann Strecke : Umfang',steps:[`d = ${z} · 2,54 cm = ${F(z*0.0254,4)} m`,`u = π · ${F(z*0.0254,4)} ≈ ${F(u,4)} m`,`${N(km)} km = ${km*1000} m`,`n = ${km*1000} : ${F(u,4)} ≈ ${F(n,0)}`]};},
+ ()=>{const L=In(5,12),n=In(5,30),a=2*PI*L*n;return {text:`Beim Voltigieren führt die Trainerin das Pferd an einer ${L} m langen Longierleine im Kreis. Welche Strecke legt das Pferd in ${n} Runden zurück?`,ans:a,unit:'m',fig:{k:'r',l:`r = ${L} m`},tip:'Die Leine ist der Radius. Eine Runde = 2 · π · r',steps:[`1 Runde: u = 2 · π · ${L} ≈ ${F(2*PI*L)} m`,`${n} Runden: ${n} · 2 · π · ${L}`,`≈ ${F(a)} m`],traps:[{v:2*PI*L,m:'Das ist nur eine Runde. Du brauchst noch mal die Anzahl der Runden.'},{v:PI*L*n,m:'Die Leine ist der Radius, also 2 · π · r pro Runde.'}]};},
+ ()=>{const r=Rn(10,60,1),a=PI*r;return {text:`Ein Straßenstück hat die Form eines Halbkreisbogens mit r = ${N(r)} m (in der Straßenmitte gemessen). Wie lang ist das Straßenstück?`,ans:a,unit:'m',fig:{k:'half',l:`r = ${N(r)} m`},tip:'Halbkreisbogen = halber Umfang = π · r',steps:['b = 2 · π · r : 2 = π · r',`b = π · ${N(r)}`,`b ≈ ${F(a)} m`],traps:[{v:2*PI*r,m:'Das ist der ganze Kreis. Ein Halbkreis ist nur die Hälfte.'}]};},
+ ()=>{const r=Rn(2,11,2),a=PI*r/2+2*r;return {text:`Ein Blumenbeet hat die Form eines Viertelkreises mit r = ${F(r)} m. Wie groß ist der Umfang des Beetes?`,ans:a,unit:'m',fig:{k:'quarter',l:`r = ${F(r)} m`},tip:'Viertelbogen (2 · π · r : 4) plus die zwei geraden Ränder (2 · r)',steps:[`Bogen = 2 · π · ${F(r)} : 4 ≈ ${F(PI*r/2)} m`,`+ 2 · r = ${F(2*r)} m`,`u ≈ ${F(a)} m`],traps:[{v:PI*r/2,m:'Das ist nur der Bogen. Die zwei geraden Ränder (Radien) gehören auch zum Umfang.'}]};},
+ ()=>mc('Wie ändert sich der Umfang eines Kreises, wenn man den Radius verdoppelt?','Er verdoppelt sich.',['Er vervierfacht sich.','Er vergrößert sich um den Faktor π.','Er verändert sich nicht.'],['u = 2 · π · r','Doppelter Radius → 2 · π · (2 · r) = 2 · u','Der Umfang verdoppelt sich.']),
+ ()=>mc('Mit welcher Formel berechnet man den Umfang eines Kreises mit dem Durchmesser 10 cm?','u = π · 10',['u = π · 5 · 5','u = 2 · π · 10','u = π · π · 5'],['u = π · d mit d = 10','also u = π · 10 (≈ 31,42 cm)','Auch richtig wäre 2 · π · 5, weil r = 5 ist.'])
+ ,()=>{const d=pick([1600,1350,1500,1800]),km=pick([0.1,1,10]),u=PI*d/1000,n=km*1000/u;return {text:`Der Durchmesser des Triebrades einer Dampflok beträgt ${d} mm. Wie oft dreht sich das Rad auf ${N(km)} km? Runde auf ganze Umdrehungen.`,ans:n,unit:'Umdrehungen',dec:0,tol:Math.max(2.01,n*0.003),fig:{k:'d',l:`d = ${d} mm`},tip:'Umfang in m ausrechnen, dann Strecke : Umfang',steps:[`u = π · ${N(d/1000)} m ≈ ${F(u,4)} m`,`${N(km)} km = ${km*1000} m`,`n = ${km*1000} : ${F(u,4)} ≈ ${F(n,0)}`]};},
+ ()=>mc('Beim Fahrradcomputer muss man den Radumfang eingeben. Michael hat ein 28″-Fahrrad (1″ = 2,54 cm). Welcher Wert stimmt?','2234 mm',['4468 mm','1117 mm','2433 mm'],['d = 28 · 25,4 mm = 711,2 mm','u = π · 711,2 ≈ 2234 mm']),
+ ()=>{const u=Rn(150,200,1),T=In(200,320),v=u/T*3.6;return {text:`Ein Riesenrad hat ${N(u)} m Umfang und braucht für eine Runde ohne Pause ${T} Sekunden. Wie schnell bewegt sich eine Gondel in km/h?`,ans:v,unit:'km/h',tol:0.02,fig:{k:'none'},tip:'Geschwindigkeit = Weg : Zeit. m/s · 3,6 = km/h',steps:[`v = ${N(u)} m : ${T} s ≈ ${F(u/T,3)} m/s`,`· 3,6 ≈ ${F(v)} km/h`]};}
+],
+b:[
+ ()=>{const un=pick(['cm','m','mm']),r=Rn(2,60,1),al=In(10,330),a=PI*r*al/180;return {text:`Berechne die Länge des Kreisbogens b, wenn r = ${N(r)} ${un} und α = ${al}° ist.`,ans:a,unit:un,fig:{k:'sector',l:`r = ${N(r)} ${un}`,al},tip:'b = π · r : 180 · α',steps:['b = π · r : 180 · α',`b = π · ${N(r)} : 180 · ${al}`,`b ≈ ${F(a)} ${un}`],traps:[{v:PI*r*r*al/360,m:'Das ist die Fläche des Sektors. Für den Bogen brauchst du π · r : 180 · α.'}]};},
+ ()=>{const r=In(10,40),al=In(20,120),a=PI*r*al/180;return {text:`Ein Straßenstück (Straßenmitte) hat die Form eines Kreisbogens mit r = ${r} m und α = ${al}°. Wie lang ist das Straßenstück?`,ans:a,unit:'m',fig:{k:'sector',l:`r = ${r} m`,al},tip:'b = π · r : 180 · α',steps:[`b = π · ${r} : 180 · ${al}`,`b ≈ ${F(a)} m`]};},
+ ()=>{const L=In(8,40),m=pick([5,10,15,20,25,35,40,45,50]),al=6*m,a=PI*L*al/180;return {text:`Wie lang ist der Weg, den die Spitze eines ${L} cm langen Minutenzeigers in ${m} Minuten zurücklegt?`,ans:a,unit:'cm',fig:{k:'clock',l:`${L} cm`,al},tip:'60 min = 360°, also 1 min = 6°',steps:[`α = ${m} · 6° = ${al}°`,`b = π · ${L} : 180 · ${al}`,`b ≈ ${F(a)} cm`],traps:[{v:PI*L*m/180,m:'Die Minuten sind noch keine Grad. 1 Minute = 6°.'}]};},
+ ()=>{const r=Rn(3,50,1),al=In(20,170),b=PI*r*al/180,a=b+2*r;return {text:`Berechne den Umfang eines Kreissektors mit r = ${N(r)} cm und α = ${al}°.`,ans:a,unit:'cm',fig:{k:'sector',l:`r = ${N(r)} cm`,al},tip:'Umfang Sektor = b + 2 · r',steps:[`b = π · ${N(r)} : 180 · ${al} ≈ ${F(b)} cm`,`u = b + 2 · r = ${F(b)} + ${F(2*r)}`,`u ≈ ${F(a)} cm`],traps:[{v:b,m:'Das ist nur der Bogen. Zum Umfang des Sektors gehören noch die zwei Radien.'}]};},
+ ()=>{const r=pick([12,15,18,20]),al=pick([40,60,80,100]);return mc(`Mit welcher Formel berechnet man die Länge eines Kreisbogens mit r = ${r} cm und α = ${al}°?`,`b = π · ${r} · ${al} : 180`,[`b = ${r} · ${al} : (π · 180)`,`b = 2 · π · ${r} · ${al} : 180`,`b = 2 · π · 180 : (${al} · ${r})`],['b = π · r : 180 · α',`b = π · ${r} · ${al} : 180 ≈ ${F(PI*r*al/180)} cm`]);},
+ ()=>mc('Ein Kreis hat r = 1 m. Wie lang ist der Kreisbogen zum Zentriwinkel 90°?','π : 2 m (≈ 1,57 m)',['π : 4 m','π m','2 · π m'],['90° ist ein Viertel vom Kreis','b = 2 · π · 1 : 4 = π : 2','≈ 1,57 m'])
+ ,()=>mc('Wie groß ist der Zentriwinkel α, wenn der Kreisbogen b genau so lang ist wie der Radius r?','α ≈ 57,30°',['α = 60°','α = 90°','α ≈ 3,14°'],['b = π · r : 180 · α mit b = r','1 = π : 180 · α','α = 180 : π ≈ 57,30°']),
+ ()=>{const al=pick([30,45,60,90,120,180,270]),b=PI*al/180;return {text:`Ein Kreis hat den Radius r = 1 m. Wie lang ist der Kreisbogen zum Zentriwinkel ${al}°?`,ans:b,unit:'m',fig:{k:'sector',l:'r = 1 m',al},tip:'b = π · r : 180 · α mit r = 1',steps:[`b = π · 1 : 180 · ${al}`,`b ≈ ${F(b)} m`]};}
+],
+a:[
+ ()=>{const un=pick(['cm','m']),r=Rn(1.5,25,2),a=PI*r*r;return {text:`Berechne den Flächeninhalt eines Kreises mit r = ${F(r)} ${un}.`,ans:a,unit:un+'²',fig:{k:'r',l:`r = ${F(r)} ${un}`},tip:'A = π · r²',steps:['A = π · r²',`A = π · ${F(r)}²`,`A ≈ ${F(a)} ${un}²`],traps:[{v:2*PI*r,m:'Das ist der Umfang. Für die Fläche: A = π · r².'},{v:PI*2*r,m:'Das ist der Umfang.'},{v:(PI*r)**2,m:'Nur r wird quadriert, nicht π.'}]};},
+ ()=>{const un=pick(['cm','m']),d=Rn(2,40,2),r=d/2,a=PI*r*r;return {text:`Berechne den Flächeninhalt eines Kreises mit dem Durchmesser d = ${F(d)} ${un}.`,ans:a,unit:un+'²',fig:{k:'d',l:`d = ${F(d)} ${un}`},tip:'Zuerst r = d : 2, dann A = π · r²',steps:[`r = ${F(d)} : 2 = ${F(r,3).replace(/0$/,'')} ${un}`,'A = π · r²',`A = π · ${F(r,3).replace(/0$/,'')}²`,`A ≈ ${F(a)} ${un}²`],traps:[{v:PI*d*d,m:'Achtung: Du hast d statt r eingesetzt. Zuerst r = d : 2!'}]};},
+ ()=>{const d1=pick([24,25,26,28,30]),k=pick([1.5,2]),d2=d1*k,p=pick([6,7,7.5,8,8.5,9,9.5,10]),a=p*k*k;return {text:`Eine Pizza mit ${d1} cm Durchmesser kostet ${F(p)} €. Wie viel müsste eine Pizza mit ${N(d2)} cm Durchmesser kosten, damit beide im Verhältnis gleich teuer sind?`,ans:a,unit:'€',tol:0.02,fig:{k:'none'},tip:'Der Preis richtet sich nach der Fläche, nicht nach dem Durchmesser',steps:[`Durchmesser × ${N(k)} → Fläche × ${N(k)}² = ${N(k*k)}`,`Preis = ${F(p)} · ${N(k*k)}`,`= ${F(a)} €`],traps:[{v:p*k,m:'Doppelter (oder größerer) Durchmesser heißt nicht gleich viel mehr Fläche: Die Fläche wächst mit dem Quadrat.'}]};},
+ ()=>{const r=Rn(2,11,2),a=PI*r*r/4;return {text:`Ein Blumenbeet hat die Form eines Viertelkreises mit r = ${F(r)} m. Wie groß ist seine Fläche?`,ans:a,unit:'m²',fig:{k:'quarter',l:`r = ${F(r)} m`},tip:'Ein Viertel der Kreisfläche: π · r² : 4',steps:[`A = π · ${F(r)}² : 4`,`A ≈ ${F(a)} m²`],traps:[{v:PI*r*r,m:'Das ist der ganze Kreis. Das Beet ist nur ein Viertel.'}]};},
+ ()=>{const h=In(20,80),b=In(12,50),a=h*b+PI*(b/2)**2;return {text:`Eine Spiegelfläche ist ein Rechteck (Höhe h = ${h} cm, Breite b = ${b} cm) mit einem Halbkreis oben und einem unten. Die Halbkreise haben den Durchmesser b. Wie groß ist die Spiegelfläche?`,ans:a,unit:'cm²',fig:{k:'mirror'},tip:'Zwei Halbkreise sind zusammen ein ganzer Kreis mit r = b : 2',steps:[`Rechteck: ${h} · ${b} = ${h*b} cm²`,`Kreis: r = ${N(b/2)} cm → π · ${N(b/2)}² ≈ ${F(PI*(b/2)**2)} cm²`,`A ≈ ${F(a)} cm²`]};},
+ ()=>{const o=pick([{n:'Fußball',h:'eines kreisrunden Lochs in der Torwand',u:In(66,72),d:55},{n:'Basketball',h:'innerhalb des Basketballrings',u:In(74,78),d:45}]),rb=o.u/(2*PI),a=rb*rb/((o.d/2)**2)*100;return {text:`Ein ${o.n} hat als größten Querschnitt einen Kreis mit ${o.u} cm Umfang. Wie viel Prozent der Fläche ${o.h} (Durchmesser ${o.d} cm) füllt dieser Querschnitt aus?`,ans:a,unit:'%',tol:0.2,fig:{k:'none'},tip:'Beide Flächen ausrechnen (Ball: zuerst r aus u), dann Ball : Loch · 100',steps:[`Ball: r = ${o.u} : (2 · π) ≈ ${F(rb,3)} cm → A ≈ ${F(PI*rb*rb)} cm²`,`Loch: r = ${N(o.d/2)} cm → A ≈ ${F(PI*(o.d/2)**2)} cm²`,`${F(PI*rb*rb)} : ${F(PI*(o.d/2)**2)} · 100 ≈ ${F(a)} %`]};},
+ ()=>mc('Wie ändert sich der Flächeninhalt eines Kreises, wenn sich der Radius verdreifacht?','Er wird 9-mal so groß.',['Er wird 3-mal so groß.','Er vergrößert sich um π.','Er bleibt gleich.'],['A = π · r²','(3 · r)² = 9 · r²','Die Fläche wird 9-mal so groß.']),
+ ()=>mc('Wie ändert sich der Flächeninhalt, wenn man den Radius verdoppelt?','Er wird 4-mal so groß.',['Er wird doppelt so groß.','Er wird π-mal so groß.','Er halbiert sich.'],['(2 · r)² = 4 · r²','Die Fläche wird 4-mal so groß.']),
+ ()=>mc('Ein runder Platz hat d = 20 m. Lea rechnet A = π · 20² ≈ 1256,6 m². Was stimmt?','Falsch: Sie hat den Durchmesser statt des Radius verwendet.',['Richtig, so rechnet man das.','Falsch: Man muss π · 20 rechnen.','Falsch: Man muss 2 · π · 20 rechnen.'],['r = 20 : 2 = 10 m','A = π · 10² ≈ 314,16 m²']),
+ ()=>{const k=pick([3,4,5,6,7]);return mc(`Welcher Flächeninhalt gehört zu einem Kreis mit r = ${k} cm?`,`A = ${k*k}π cm²`,[`A = ${2*k}π cm²`,`A = ${k}π cm²`,`A = ${2*k*k}π cm²`],[`A = π · ${k}² = ${k*k}π cm²`]);}
+ ,()=>{const r=Rn(2,11,2),a=PI*r*r/8;return {text:`Ein Blumenbeet hat die Form eines Achtelkreises mit r = ${F(r)} m. Wie groß ist seine Fläche?`,ans:a,unit:'m²',fig:{k:'sector',l:`r = ${F(r)} m`,al:45},tip:'Ein Achtel der Kreisfläche: π · r² : 8',steps:[`A = π · ${F(r)}² : 8`,`A ≈ ${F(a)} m²`],traps:[{v:PI*r*r,m:'Das ist der ganze Kreis. Das Beet ist nur ein Achtel.'}]};},
+ ()=>{const a=pick([6,8,10,12,14]),ri=PI*a*a/4,ru=PI*a*a/2;return Math.random()<.5?{text:`Ein Quadrat hat die Seitenlänge a = ${a} cm. Wie groß ist die Fläche seines Inkreises (der Kreis innen, der alle Seiten berührt)?`,ans:ri,unit:'cm²',fig:{k:'sqc'},tip:'Inkreis: r = a : 2',steps:[`r = ${a} : 2 = ${N(a/2)} cm`,`A = π · ${N(a/2)}²`,`A ≈ ${F(ri)} cm²`]}:{text:`Ein Quadrat hat die Seitenlänge a = ${a} cm. Wie groß ist die Fläche seines Umkreises (der Kreis durch alle vier Ecken)?`,ans:ru,unit:'cm²',fig:{k:'sqc'},tip:'Umkreis: r = halbe Diagonale = a · √2 : 2',steps:[`Diagonale = a · √2 ≈ ${F(a*Math.SQRT2,3)} cm`,`r ≈ ${F(a*Math.SQRT2/2,3)} cm`,`A = π · r² ≈ ${F(ru)} cm²`]};},
+ ()=>mc('In einen quadratischen Karton (30 cm) passen neun Minipizzen (je d = 10 cm) oder eine große Pizza (d = 30 cm). Welche Packung hat mehr Pizza-Fläche?','Beide gleich viel.',['Die neun Minipizzen.','Die große Pizza.','Das kann man nicht berechnen.'],['9 · π · 5² = 225π cm²','π · 15² = 225π cm²','Gleich viel! Die Minipizzen haben aber 3-mal so viel Rand.'])
+],
+k:[
+ ()=>{const un=pick(['cm','dm','m']),u=Rn(10,120,1),r=u/(2*PI);return {text:`Ein Kreis hat den Umfang u = ${N(u)} ${un}. Berechne den Radius!`,ans:r,unit:un,fig:{k:'r',l:'r = ?'},tip:'u = 2 · π · r  | : (2 · π)  →  r = u : (2 · π)',steps:['r = u : (2 · π)',`r = ${N(u)} : (2 · π)`,`r ≈ ${F(r)} ${un}`],traps:[{v:u/PI,m:'Das ist der Durchmesser (u : π). Für den Radius: u : (2 · π).'}]};},
+ ()=>{const un=pick(['cm','dm','m']),u=Rn(10,120,1),d=u/PI;return {text:`Ein Kreis hat den Umfang u = ${N(u)} ${un}. Berechne den Durchmesser!`,ans:d,unit:un,fig:{k:'d',l:'d = ?'},tip:'u = π · d  | : π  →  d = u : π',steps:['d = u : π',`d = ${N(u)} : π`,`d ≈ ${F(d)} ${un}`],traps:[{v:u/(2*PI),m:'Das ist der Radius. Für den Durchmesser: u : π.'}]};},
+ ()=>{const un=pick(['cm','m']),A=Rn(5,800,2),r=Math.sqrt(A/PI);return {text:`Ein Kreis hat den Flächeninhalt A = ${F(A)} ${un}². Berechne den Radius!`,ans:r,unit:un,fig:{k:'r',l:'r = ?'},tip:'r² = A : π, dann Wurzel ziehen',steps:['A = π · r²  | : π','r² = A : π',`r = √(${F(A)} : π) = √${F(A/PI,3)}…`,`r ≈ ${F(r)} ${un}`],traps:[{v:A/PI,m:'Das ist r². Du musst noch die Wurzel ziehen.'}]};},
+ ()=>{const k=In(2,12);return {text:`Ein Kreis hat den Flächeninhalt A = ${k*k}π cm². Berechne den Radius (ganz ohne Taschenrechner)!`,ans:k,unit:'cm',dec:0,tol:0.01,fig:{k:'r',l:'r = ?'},tip:'π kürzt sich weg: π · r² = '+k*k+'π',steps:[`${k*k}π = π · r²  | : π`,`${k*k} = r²`,`r = ${k} cm`],traps:[{v:k*k,m:'Das ist r². Die Wurzel daraus ist r.'}]};},
+ ()=>{const k=In(3,40);return {text:`Ein Kreis hat den Umfang u = ${2*k}π cm. Berechne den Radius (ohne Taschenrechner)!`,ans:k,unit:'cm',dec:0,tol:0.01,fig:{k:'r',l:'r = ?'},tip:'2 · π · r = '+2*k+'π, π kürzt sich weg',steps:[`2 · π · r = ${2*k}π  | : π`,`2 · r = ${2*k}`,`r = ${k} cm`],traps:[{v:2*k,m:'Das ist der Durchmesser. Der Radius ist die Hälfte.'}]};},
+ ()=>{const b=Rn(20,130,1),al=In(30,160),r=b*180/(PI*al);return {text:`Von einem Kreisbogen kennt man b = ${N(b)} mm und α = ${al}°. Berechne den Radius!`,ans:r,unit:'mm',fig:{k:'sector',l:'r = ?',al},tip:'r = b · 180 : (π · α)',steps:['r = b · 180 : (π · α)',`r = ${N(b)} · 180 : (π · ${al})`,`r ≈ ${F(r)} mm`]};},
+ ()=>{const b=Rn(20,90,1),r=Rn(20,90,1),al=b*180/(PI*r);return {text:`Von einem Kreisbogen kennt man b = ${N(b)} m und r = ${N(r)} m. Berechne den Zentriwinkel α!`,ans:al,unit:'°',fig:{k:'sector',l:`r = ${N(r)} m`,al:Math.min(330,al)},tip:'α = b · 180 : (π · r)',steps:['α = b · 180 : (π · r)',`α = ${N(b)} · 180 : (π · ${N(r)})`,`α ≈ ${F(al)}°`]};},
+ ()=>{const u=Rn(1.2,5.5,2),r=u/(2*PI),A=PI*r*r;return {text:`Der Umfang eines Baumstammes ist u = ${F(u)} m. Wie groß ist seine Querschnittfläche?`,ans:A,unit:'m²',tol:0.006,fig:{k:'tree'},tip:'Zwei Schritte: zuerst r = u : (2 · π), dann A = π · r²',steps:[`① r = ${F(u)} : (2 · π) ≈ ${F(r,4)} m`,`② A = π · ${F(r,4)}²`,`A ≈ ${F(A)} m²`]};},
+ ()=>{const s=Rn(17,24,1),d=s/10/PI*100;return {text:`Das Vorderrad eines Mountainbikes legt in 10 Umdrehungen ${N(s)} m zurück. Wie groß ist der Durchmesser des Rades in cm?`,ans:d,unit:'cm',tol:0.15,fig:{k:'d',l:'d = ?'},tip:'Eine Umdrehung = Umfang. Dann d = u : π',steps:[`u = ${N(s)} : 10 = ${F(s/10)} m = ${F(s*10,0)} cm`,`d = ${F(s*10,0)} : π`,`d ≈ ${F(d)} cm`]};},
+ ()=>{const u=Rn(150,200,1),d=u/PI;return {text:`Der Umfang eines Riesenrades beträgt rund ${N(u)} m. In welcher Höhe befindet man sich ungefähr am höchsten Punkt? (Rechne mit dem Durchmesser.)`,ans:d,unit:'m',fig:{k:'d',l:'d = ?'},tip:'Höchster Punkt ≈ Durchmesser = u : π',steps:['d = u : π',`d = ${N(u)} : π`,`d ≈ ${F(d)} m`]};},
+ ()=>{const k=pick([3,4,5,6,8]);return mc(`Ein Kreis hat den Umfang ${2*k}π cm. Wie groß ist der Radius?`,`r = ${k} cm`,[`r = ${2*k} cm`,`r = ${4*k} cm`,`r = ${k}π cm`],[`2 · π · r = ${2*k}π`,`r = ${2*k}π : (2π) = ${k} cm`]);}
+ ,()=>{if(Math.random()<.5){const r=1/(2*PI),A=PI*r*r;return {text:'Ein Kreis hat den Umfang u = 1,00 m. Wie groß ist sein Flächeninhalt?',ans:A,unit:'m²',tol:0.006,fig:{k:'r',l:'u = 1 m'},tip:'Zuerst r = u : (2 · π)',steps:['r = 1 : (2 · π) ≈ 0,1592 m','A = π · 0,1592²','A ≈ 0,08 m²']};}const r=Math.sqrt(1/PI),u=2*PI*r;return {text:'Ein Kreis hat den Flächeninhalt A = 1,00 m². Wie groß ist sein Umfang?',ans:u,unit:'m',fig:{k:'r',l:'A = 1 m²'},tip:'Zuerst r = √(A : π), dann u = 2 · π · r',steps:['r = √(1 : π) ≈ 0,5642 m','u = 2 · π · 0,5642','u ≈ 3,54 m']};},
+ ()=>{const t=pick([{n:'Eiche',u:137,g:3},{n:'Fichte',u:155,g:5},{n:'Buche',u:In(110,180),g:pick([2,3,4])},{n:'Lärche',u:In(110,180),g:pick([3,4,5])}]),r=t.u/(2*PI),age=r*10/t.g;return {text:`Ein Förster misst bei einer ${t.n} einen Stammumfang von ${t.u} cm. Der Abstand zweier Jahresringe beträgt im Schnitt ${t.g} mm. Wie alt ist der Baum ungefähr? (ganze Jahre)`,ans:age,unit:'Jahre',dec:0,tol:1.01,fig:{k:'tree'},tip:'Radius ausrechnen, in mm umwandeln, durch den Ringabstand teilen',steps:[`r = ${t.u} : (2 · π) ≈ ${F(r)} cm = ${F(r*10,1)} mm`,`Alter = ${F(r*10,1)} : ${t.g} ≈ ${F(age,0)} Jahre`]};}
+],
+p:[
+ ()=>{const r=Rn(3,40,1),al=In(15,300),a=PI*r*r*al/360;return {text:`Berechne den Flächeninhalt des Kreissektors mit r = ${N(r)} cm und α = ${al}°.`,ans:a,unit:'cm²',fig:{k:'sector',l:`r = ${N(r)} cm`,al},tip:'A = π · r² : 360 · α',steps:['A = π · r² : 360 · α',`A = π · ${N(r)}² : 360 · ${al}`,`A ≈ ${F(a)} cm²`],traps:[{v:PI*r*al/180,m:'Das ist die Bogenlänge. Für die Fläche brauchst du r².'}]};},
+ ()=>{const r=Rn(5,40,1),b=Rn(5,60,1),a=b*r/2;return {text:`Ein Kreissektor hat r = ${N(r)} m und die Bogenlänge b = ${N(b)} m. Berechne seinen Flächeninhalt!`,ans:a,unit:'m²',fig:{k:'sector',l:`r = ${N(r)} m`,al:Math.min(330,b*180/(PI*r))},tip:'A = b · r : 2',steps:['A = b · r : 2',`A = ${N(b)} · ${N(r)} : 2`,`A = ${F(a)} m²`]};},
+ ()=>{const R=In(5,15),r=In(2,R-1),a=PI*(R*R-r*r);return {text:`Ein ringförmiges Brunnenbecken hat den Außenradius R = ${R} m und den Innenradius r = ${r} m. Wie groß ist die Fläche des Rings?`,ans:a,unit:'m²',fig:{k:'ring'},tip:'A = π · R² − π · r²',steps:[`A = π · ${R}² − π · ${r}²`,`A = π · (${R*R} − ${r*r}) = π · ${R*R-r*r}`,`A ≈ ${F(a)} m²`],traps:[{v:PI*(R-r)**2,m:'Man darf nicht (R − r)² rechnen. Zuerst beide Kreisflächen, dann abziehen.'}]};},
+ ()=>{const R=In(5,15),r=In(2,R-1),a=2*PI*(R+r);return {text:`Bei einem ringförmigen Brunnenbecken (R = ${R} m, r = ${r} m) werden beide Ränder mit Pflastersteinen ausgelegt. Für wie viele Meter braucht man Steine?`,ans:a,unit:'m',fig:{k:'ring'},tip:'Äußerer Umfang plus innerer Umfang',steps:[`außen: 2 · π · ${R} ≈ ${F(2*PI*R)} m`,`innen: 2 · π · ${r} ≈ ${F(2*PI*r)} m`,`zusammen ≈ ${F(a)} m`]};},
+ ()=>{const r1=In(150,220),r2=r1-In(30,50),al=pick([50,60,70,80,90]),a=PI*(r1*r1-r2*r2)/360*al;return {text:`Eine Sitzbank hat die Form eines Kreisringsektors: äußerer Radius ${r1} cm, innerer Radius ${r2} cm, α = ${al}°. Wie groß ist die Sitzfläche?`,ans:a,unit:'cm²',fig:{k:'ringsec',al},tip:'(π · R² − π · r²) : 360 · α',steps:[`A = (π · ${r1}² − π · ${r2}²) : 360 · ${al}`,`A = π · ${r1*r1-r2*r2} : 360 · ${al}`,`A ≈ ${F(a)} cm²`]};},
+ ()=>{const R=In(100,160),w=In(6,10),r=R-w,al=In(50,110),area=Math.random()<.5;if(area){const a=PI*(R*R-r*r)/360*al;return {text:`Eine Straße mit dem äußeren Radius ${R} m und ${w} m Breite beschreibt einen Kreisbogen mit α = ${al}°. Für wie viele m² Straßenfläche braucht man einen neuen Belag?`,ans:a,unit:'m²',fig:{k:'ringsec',al},tip:'Innenradius = außen − Breite; dann Ringstück',steps:[`r innen = ${R} − ${w} = ${r} m`,`A = (π · ${R}² − π · ${r}²) : 360 · ${al}`,`A ≈ ${F(a)} m²`]};}const a=PI*(R+r)*al/180;return {text:`Eine Straße mit dem äußeren Radius ${R} m und ${w} m Breite beschreibt einen Kreisbogen mit α = ${al}°. Wie viele Meter Leitschienen braucht man für den inneren und äußeren Rand zusammen?`,ans:a,unit:'m',fig:{k:'ringsec',al},tip:'Innenradius = außen − Breite; beide Bögen addieren',steps:[`r innen = ${R} − ${w} = ${r} m`,`außen: π · ${R} : 180 · ${al} ≈ ${F(PI*R*al/180)} m`,`innen: π · ${r} : 180 · ${al} ≈ ${F(PI*r*al/180)} m`,`zusammen ≈ ${F(a)} m`]};}
+ ,()=>{const al=pick([60,90]),r=pick([3,4,5,6,7,8,40,50,60]),un=r>=30?'mm':'cm',sec=PI*r*r*al/360,tri=al===90?r*r/2:Math.sqrt(3)/4*r*r,A=sec-tri,b=PI*r*al/180,s=al===90?r*Math.SQRT2:r;return Math.random()<.5?{text:`Ein Kreissegment hat r = ${r} ${un} und α = ${al}°. Berechne seinen Flächeninhalt!`,ans:A,unit:un+'²',fig:{k:'segment',al},tip:'Sektor minus Dreieck'+(al===60?' (gleichseitig: √3 : 4 · r²)':' (rechtwinklig: r · r : 2)'),steps:[`Sektor: π · ${r}² : 360 · ${al} ≈ ${F(sec)}`,`Dreieck: ${al===90?`${r} · ${r} : 2 = ${F(tri)}`:`√3 : 4 · ${r}² ≈ ${F(tri)}`}`,`A ≈ ${F(A)} ${un}²`]}:{text:`Ein Kreissegment hat r = ${r} ${un} und α = ${al}°. Berechne seinen Umfang!`,ans:b+s,unit:un,fig:{k:'segment',al},tip:'Umfang = Bogen b + Sehne s'+(al===60?' (bei 60° ist s = r)':' (bei 90° ist s = r · √2)'),steps:[`b = π · ${r} : 180 · ${al} ≈ ${F(b)} ${un}`,`s ${al===60?'= '+r:'≈ '+F(s,3)} ${un}`,`u = b + s ≈ ${F(b+s)} ${un}`]};},
+ ()=>{const r=In(20,40),b=In(10,5*r),al=b*180/(PI*r);return {text:`Von einem Kreissektor kennt man r = ${r} mm und b = ${b} mm. Berechne den Zentriwinkel α!`,ans:al,unit:'°',fig:{k:'sector',l:`r = ${r} mm`,al:Math.min(330,al)},tip:'α = b · 180 : (π · r)',steps:[`α = ${b} · 180 : (π · ${r})`,`α ≈ ${F(al)}°`]};},
+ ()=>mc('Welche Aussage zum Kreissektor ist richtig?','Wird der Radius bei gleichem α verdreifacht, wird die Fläche 9-mal so groß.',['Wird α halbiert, verdoppelt sich die Fläche.','Wird der Radius verdoppelt und α halbiert, bleibt die Fläche gleich.','Wird die Bogenlänge verdoppelt, bleibt die Fläche gleich.'],['A = π · r² : 360 · α','r × 3 → r² × 9 → A × 9','(Radius × 2 und α : 2 ergibt A × 4 : 2 = A × 2)']),
+ ()=>mc('Mit welcher Formel berechnet man die Fläche einer Wendeltreppen-Stufe (Ringstück: Außenradius 105 cm, Innenradius 10 cm, α = 25°)?','A = π · 105² : 360 · 25 − π · 10² : 360 · 25',['A = π · 105² : 360 · 25','A = π · 95² : 360 · 25','A = π · 95² : 360 · 25 + π · 10² : 360 · 25'],['Großer Sektor minus kleiner Sektor','A = π · 105² : 360 · 25 − π · 10² : 360 · 25'])
+],
+v:[
+ ()=>{const L=pick([18,20,24,28,40]),w=pick([9,10,12,15]),a=2*L+PI*w;return {text:`Eine Gruppe läuft um ein Spielfeld (${L} m lang, ${w} m breit): an den Längsseiten auf der Linie, an den Breitseiten entlang eines Halbkreises. Wie lang ist eine Runde?`,ans:a,unit:'m',fig:{k:'stadium'},tip:'Zwei Geraden + zwei Halbkreise (zusammen ein Kreis mit d = Breite)',steps:[`Geraden: 2 · ${L} = ${2*L} m`,`Halbkreise: π · ${w} ≈ ${F(PI*w)} m`,`Runde ≈ ${F(a)} m`],traps:[{v:2*L+2*PI*w,m:'Zwei Halbkreise ergeben nur einen ganzen Kreis mit d = Breite, also π · d.'}]};},
+ ()=>{const x=pick([0.5,1,1.5,2]),n=pick([5,10,20]),s=2*PI*x*n;return {text:`Bei einer Runde um ein Spielfeld (Geraden + zwei Halbkreise) läuft ein „fauler“ Schüler immer ${N(x)} m innerhalb der Bahn. Wie viele Meter spart er in ${n} Runden?`,ans:s,unit:'m',fig:{k:'stadium'},tip:`Die Geraden bleiben gleich. Der Kreis-Durchmesser wird um 2 · ${N(x)} m kleiner.`,steps:[`d wird um ${N(2*x)} m kleiner`,`pro Runde: π · ${N(2*x)} ≈ ${F(2*PI*x)} m`,`${n} Runden ≈ ${F(s)} m`]};},
+ ()=>{const S=pick([40,50,60,80]),D=pick([16,20,24,30]),B=pick([3,4,5]),w=pick(['mark','area','diff']);
+  if(w==='mark'){const a=4*S+PI*D+PI*(D+2*B);return {text:`Eine Laufbahn besteht aus zwei Geraden (je ${S} m) und Halbkreisen. Der innere Halbkreis-Durchmesser ist ${D} m, die Bahn ist ${B} m breit. Die innere und die äußere Begrenzung werden markiert. Wie lang ist die gesamte Markierung?`,ans:a,unit:'m',fig:{k:'stadium'},tip:'Innen: 2 Geraden + π · d. Außen: 2 Geraden + π · (d + 2 · Breite).',steps:[`innen: 2 · ${S} + π · ${D} ≈ ${F(2*S+PI*D)} m`,`außen: 2 · ${S} + π · ${D+2*B} ≈ ${F(2*S+PI*(D+2*B))} m`,`gesamt ≈ ${F(a)} m`]};}
+  if(w==='area'){const r=D/2,Ro=r+B,a=2*S*B+PI*(Ro*Ro-r*r);return {text:`Eine Laufbahn hat zwei Geraden (je ${S} m) und an den Enden Halbkreise. Innen ist der Durchmesser ${D} m, die Bahn ist ${B} m breit. Wie viele m² Belag braucht man?`,ans:a,unit:'m²',fig:{k:'stadium'},tip:'Zwei Rechtecke (Gerade · Breite) + ein Kreisring',steps:[`Rechtecke: 2 · ${S} · ${B} = ${2*S*B} m²`,`Ring: π · ${N(Ro)}² − π · ${N(r)}² ≈ ${F(PI*(Ro*Ro-r*r))} m²`,`gesamt ≈ ${F(a)} m²`]};}
+  const n=pick([10,20]),dd=2*B-4,val=PI*dd*n;return {text:`Laufbahn: innerer Halbkreis-Durchmesser ${D} m, Bahnbreite ${B} m, Geraden je ${S} m. Thomas läuft 1 m neben der inneren Begrenzung, Jakob 1 m neben der äußeren. Um wie viele Meter ist Jakobs Weg nach ${n} Runden länger?`,ans:val,unit:'m',fig:{k:'stadium'},tip:'Die Geraden sind gleich lang, nur die Halbkreise unterscheiden sich',steps:[`Thomas: d = ${D} + 2 = ${D+2} m`,`Jakob: d = ${D+2*B} − 2 = ${D+2*B-2} m`,`pro Runde: π · ${dd} ≈ ${F(PI*dd)} m`,`${n} Runden ≈ ${F(val)} m`]};},
+ ()=>{const x=pick([1,2,5,10]),h=x/(2*PI)*100;return {text:`Ein Seil liegt straff um den Äquator (r ≈ 6370 km). Man verlängert es um ${x} m und hebt es überall gleich hoch ab. Wie hoch steht es dann über dem Boden (in cm)?`,ans:h,unit:'cm',tol:0.2,fig:{k:'earth'},tip:'Der Erdradius ist egal! Mehr Radius = Verlängerung : (2 · π)',steps:[`2 · π · (r + h) = 2 · π · r + ${x}`,`h = ${x} : (2 · π) ≈ ${F(x/(2*PI),4)} m`,`h ≈ ${F(h)} cm`]};},
+ ()=>{const h=pick([1,2,5]),x=2*PI*h;return {text:`Um wie viele Meter müsste ein Seil um den Äquator verlängert werden, damit es überall ${h} m über dem Boden schwebt?`,ans:x,unit:'m',fig:{k:'earth'},tip:'Neuer Umfang − alter Umfang = 2 · π · h',steps:[`2 · π · (r + ${h}) − 2 · π · r = 2 · π · ${h}`,`≈ ${F(x)} m`]};},
+ ()=>{const c=pick([['Bregenz',47,30],['Eisenstadt',47,51],['Graz',47,4],['Innsbruck',47,16],['Klagenfurt',46,37],['Linz',48,16],['Salzburg',47,48],['St. Pölten',48,14],['Wien',48,13]]),deg=c[1]+c[2]/60,pole=Math.random()<.5,al=pole?90-deg:deg,b=PI*6370*al/180;return {text:`${c[0]} liegt auf ${c[1]}° ${c[2]}′ nördlicher Breite. Wie weit ist die Stadt ${pole?'vom Nordpol (90°)':'vom Äquator (0°)'} entfernt? (Erde als Kugel, r = 6370 km)`,ans:b,unit:'km',tol:Math.max(0.6,b*0.002),fig:{k:'earth'},tip:'1° = 60′. Der Abstand ist ein Kreisbogen mit r = 6370 km.',steps:[`${c[1]}° ${c[2]}′ = ${c[1]} + ${c[2]} : 60 ≈ ${F(deg,4)}°`,pole?`α = 90° − ${F(deg,4)}° = ${F(al,4)}°`:`α = ${F(al,4)}°`,`b = π · 6370 : 180 · ${F(al,4)}`,`b ≈ ${F(b)} km`]};},
+ ()=>{const h=pick([10,11,12]),r=6370+h,b=PI*r*82/180,T=pick([12,13]);return Math.random()<.5?{text:`Kapstadt (34° südliche Breite) und Wien (48° nördliche Breite) liegen ungefähr auf demselben Meridian. Wie viele km legt ein Flugzeug zurück, das auf direktem Weg in ${h} km Höhe fliegt?`,ans:b,unit:'km',tol:Math.max(1,b*0.002),fig:{k:'earth'},tip:'Winkel: 34° + 48°. Radius: Erdradius + Flughöhe.',steps:['α = 34° + 48° = 82°',`r = 6370 + ${h} = ${r} km`,`b = π · ${r} : 180 · 82 ≈ ${F(b)} km`]}:{text:`Ein Flugzeug fliegt von Kapstadt (34° Süd) nach Wien (48° Nord) in ${h} km Höhe und braucht rund ${T} Stunden. Wie hoch ist seine Durchschnittsgeschwindigkeit in km/h?`,ans:b/T,unit:'km/h',tol:Math.max(1,b/T*0.003),fig:{k:'earth'},tip:'Zuerst die Strecke als Kreisbogen (r = 6370 + Flughöhe), dann : Zeit',steps:[`b = π · ${r} : 180 · 82 ≈ ${F(b)} km`,`v = ${F(b)} : ${T} ≈ ${F(b/T)} km/h`]};},
+ ()=>{const o=pick([{h:400,t:92},{h:500,t:94},{h:450,t:93}]),R=6370+o.h,u=2*PI*R,v=u/(o.t/60);return Math.random()<.5?{text:`Ein Satellit umkreist die Erde (r ≈ 6370 km) in ${o.h} km Höhe. Wie viele km legt er bei einer Umrundung zurück?`,ans:u,unit:'km',tol:Math.max(1,u*0.002),fig:{k:'earth'},tip:'Radius der Bahn = 6370 + Flughöhe',steps:[`r = 6370 + ${o.h} = ${R} km`,`u = 2 · π · ${R} ≈ ${F(u)} km`]}:{text:`Ein Satellit fliegt in ${o.h} km Höhe um die Erde (r ≈ 6370 km) und braucht für eine Runde 1 h ${o.t-60} min. Wie viele km legt er in 1 h zurück?`,ans:v,unit:'km',tol:Math.max(2,v*0.003),fig:{k:'earth'},tip:'Strecke einer Runde : Zeit in Stunden',steps:[`u = 2 · π · ${R} ≈ ${F(u)} km`,`Zeit = ${o.t} min = ${F(o.t/60,4)} h`,`${F(u)} : ${F(o.t/60,4)} ≈ ${F(v)} km`]};},
+ ()=>{const b=PI*6370*2.4/180;return {text:'Österreich erstreckt sich entlang des 15°-Meridians von etwa 46,6° bis 49,0° nördlicher Breite. Wie groß ist diese Nord-Süd-Ausdehnung in km? (r = 6370 km)',ans:b,unit:'km',tol:0.6,fig:{k:'earth'},tip:'Winkelunterschied ausrechnen, dann die Bogenformel',steps:['α = 49,0° − 46,6° = 2,4°','b = π · 6370 : 180 · 2,4','b ≈ 266,83 km']};},
+ ()=>{const u=pick([8,12,16,20,24,40]),a=u/4,Aq=a*a,r=u/(2*PI),Ak=PI*r*r;return Math.random()<.5?{text:`Ein Quadrat und ein Kreis haben beide den Umfang ${u} cm. Das Quadrat hat ${F(Aq)} cm² Fläche. Wie groß ist die Fläche des Kreises?`,ans:Ak,unit:'cm²',fig:{k:'sqc'},tip:'Zuerst r = u : (2 · π), dann A = π · r²',steps:[`r = ${u} : (2 · π) ≈ ${F(r,4)} cm`,`A = π · ${F(r,4)}² ≈ ${F(Ak)} cm²`,'Der Kreis hat mehr Fläche als das Quadrat.']}:{text:`Ein Quadrat und ein Kreis haben beide den Umfang ${u} cm. Um wie viele cm² ist die Kreisfläche größer als die Quadratfläche?`,ans:Ak-Aq,unit:'cm²',fig:{k:'sqc'},tip:'Beide Flächen ausrechnen und subtrahieren',steps:[`Quadrat: a = ${u} : 4 = ${N(a)} cm → A = ${F(Aq)} cm²`,`Kreis: r ≈ ${F(r,4)} cm → A ≈ ${F(Ak)} cm²`,`Unterschied ≈ ${F(Ak-Aq)} cm²`]};},
+ ()=>{const r=pick([22.5,25,26.5,30]),m=pick([15,20,25]),s=2*(r+m);return {text:`Paul montiert eine Dartscheibe (r = ${N(r)} cm) auf eine quadratische Holzplatte. Die Platte soll überall mindestens ${m} cm überstehen. Wie lang muss eine Seite der Platte mindestens sein?`,ans:s,unit:'cm',fig:{k:'sqc'},tip:'Seite = Durchmesser + 2 · Überstand',steps:[`d = 2 · ${N(r)} = ${N(2*r)} cm`,`Seite = ${N(2*r)} + 2 · ${m}`,`= ${N(s)} cm`]};},
+ ()=>{const R=pick([150,175,200]),r=pick([40,45,50]),blue=PI*R*120/180,green=PI*r*120/180+2*(R-r),w1=`Weg 1 (≈ ${F(blue)} m)`,w2=`Weg 2 (≈ ${F(green)} m)`;return mc(`Carlotta geht von A nach B. Weg 1: ein Kreisbogen mit r = ${R} m und α = 120°. Weg 2: ${R-r} m gerade zur Piazza, ein Bogen mit r = ${r} m und α = 120°, dann wieder ${R-r} m gerade hinaus. Welcher Weg ist kürzer?`,blue<green?w1:w2,[blue<green?w2:w1,'Beide sind gleich lang.','Das kann man nicht berechnen.'],[`Weg 1: π · ${R} : 180 · 120 ≈ ${F(blue)} m`,`Weg 2: π · ${r} : 180 · 120 + 2 · ${R-r} ≈ ${F(green)} m`]);},
+ ()=>mc('In einem Kreis mit u = 44 cm verläuft eine S-Kurve aus zwei Halbkreisen auf dem Durchmesser. Bei A sind beide Halbkreise gleich groß, bei B verschieden groß. Was gilt für die Länge der Kurven?','Beide sind gleich lang: je 22 cm.',['A ist länger als B.','B ist länger als A.','A ist 44 cm lang.'],['π · d₁ : 2 + π · d₂ : 2 = π · (d₁ + d₂) : 2','d₁ + d₂ = d, also immer π · d : 2 = u : 2','44 : 2 = 22 cm']),
+ ()=>mc('Welcher alte Näherungswert für π ist am genauesten?','3 16/113 (16. Jahrhundert, ≈ 3,1415929)',['(16/9)² (Ägypter, ≈ 3,1605)','√10 (Brahmagupta, ≈ 3,1623)','3 1/7 (Archimedes, ≈ 3,1429)'],['π = 3,1415926…','3 + 16 : 113 = 3,1415929…','stimmt auf 6 Dezimalen'])
+],
+e:[
+ ()=>{const pr=pick([['mm','cm'],['cm','dm'],['dm','m'],['cm','m'],['mm','m'],['m','km'],['mm','dm'],['dm','km']]),[f,t]=Math.random()<.5?pr:[pr[1],pr[0]],v=f==='km'?Rn(0.05,9.5,2):Rn(0.5,99,pick([0,1,2])),ans=v*LEN[f]/LEN[t];const big=LEN[f]>LEN[t],k=+(big?LEN[f]/LEN[t]:LEN[t]/LEN[f]).toPrecision(6);return {text:`Rechne um: ${N(v)} ${f} = ? ${t}`,ans,unit:t,conv:true,dec:decOf(ans),tol:Math.max(1e-9,Math.abs(ans)*1e-6),fig:{k:'none'},tip:`1 ${big?f:t} = ${fmtN(k)} ${big?t:f}. ${big?'Größere in kleinere Einheit: mal':'Kleinere in größere Einheit: durch'} ${fmtN(k)}.`,steps:[`1 ${big?f:t} = ${fmtN(k)} ${big?t:f}`,`${N(v)} ${big?'·':':'} ${fmtN(k)}`,`${N(v)} ${f} = ${fmtN(ans)} ${t}`],traps:[{v:big?v/k:v*k,m:`Falsche Richtung! Von ${f} nach ${t} musst du ${big?'multiplizieren':'dividieren'}.`}]};},
+ ()=>{const pr=pick([['cm²','mm²',100],['dm²','cm²',100],['m²','dm²',100],['m²','cm²',10000]]),up=Math.random()<.5,v=up?In(2,950):Rn(0.05,9.5,2),f=up?pr[1]:pr[0],t=up?pr[0]:pr[1],k=pr[2],ans=up?v/k:v*k;return {text:`Rechne um: ${N(v)} ${f} = ? ${t}`,ans,unit:t,conv:true,dec:decOf(ans),tol:Math.max(1e-9,Math.abs(ans)*1e-6),fig:{k:'none'},tip:`Achtung Fläche: 1 ${pr[0]} = ${fmtN(k)} ${pr[1]} (nicht ${k===100?'10':'100'}!)`,steps:[`1 ${pr[0]} = ${fmtN(k)} ${pr[1]}`,`${N(v)} ${up?':':'·'} ${fmtN(k)}`,`${N(v)} ${f} = ${fmtN(ans)} ${t}`],traps:[{v:up?v/Math.sqrt(k):v*Math.sqrt(k),m:`Bei Flächen ist der Umrechnungsfaktor ${fmtN(k)}, nicht ${fmtN(Math.sqrt(k))}. Denn 1 ${pr[0]} ist ein Quadrat mit ${Math.sqrt(k)} · ${Math.sqrt(k)} ${pr[1].replace('²','')}-Kästchen.`}]};},
+ ()=>{const d=In(20,180),u=PI*d/100;return {text:`Ein Kreis hat den Durchmesser d = ${d} cm. Berechne den Umfang in Metern!`,ans:u,unit:'m',fig:{k:'d',l:`d = ${d} cm`},tip:'Zuerst in m umrechnen (: 100), dann u = π · d',steps:[`d = ${d} cm = ${N(d/100)} m`,`u = π · ${N(d/100)}`,`u ≈ ${F(u)} m`],traps:[{v:PI*d,m:'Das ist der Umfang in cm. Gefragt ist er in Metern: noch durch 100.'}]};},
+ ()=>{const r=In(15,120),A=PI*(r/10)**2;return {text:`Ein Kreis hat den Radius r = ${r} mm. Berechne seinen Flächeninhalt in cm²!`,ans:A,unit:'cm²',fig:{k:'r',l:`r = ${r} mm`},tip:'Am einfachsten: zuerst r in cm umrechnen (: 10), dann A = π · r²',steps:[`r = ${r} mm = ${N(r/10)} cm`,`A = π · ${N(r/10)}²`,`A ≈ ${F(A)} cm²`],traps:[{v:PI*r*r/10,m:'Fläche in mm² darf man nicht durch 10 teilen. 1 cm² = 100 mm². Rechne am besten zuerst r in cm um.'},{v:PI*r*r,m:'Das ist die Fläche in mm². Gefragt ist cm² (1 cm² = 100 mm²).'}]};},
+ ()=>{const u=Rn(0.4,2.5,2),r=u*1000/(2*PI);return {text:`Eine kreisförmige Laufrunde ist ${N(u)} km lang. Wie groß ist ihr Radius in Metern?`,ans:r,unit:'m',fig:{k:'r',l:`u = ${N(u)} km`},tip:'Zuerst km in m umrechnen (· 1000), dann r = u : (2 · π)',steps:[`u = ${N(u)} km = ${N(+(u*1000).toFixed(0))} m`,`r = ${N(+(u*1000).toFixed(0))} : (2 · π)`,`r ≈ ${F(r)} m`],traps:[{v:u/(2*PI),m:'Das wäre der Radius in km. Gefragt ist er in Metern.'}]};},
+ ()=>{const r=In(40,300),al=In(20,200),b=PI*(r/100)*al/180;return {text:`Ein Kreisbogen hat den Radius r = ${r} cm und den Zentriwinkel α = ${al}°. Wie lang ist der Bogen in Metern?`,ans:b,unit:'m',fig:{k:'sector',l:`r = ${r} cm`,al},tip:'Zuerst r in m umrechnen (: 100), dann b = π · r : 180 · α',steps:[`r = ${r} cm = ${N(r/100)} m`,`b = π · ${N(r/100)} : 180 · ${al}`,`b ≈ ${F(b)} m`],traps:[{v:PI*r*al/180,m:'Das ist die Bogenlänge in cm. Gefragt ist sie in Metern.'}]};},
+ ()=>{const r=In(5,40),A=PI*(r/10)**2;return {text:`Ein runder Tisch hat den Radius r = ${r} dm. Wie groß ist die Tischfläche in m²?`,ans:A,unit:'m²',fig:{k:'r',l:`r = ${r} dm`},tip:'Zuerst r in m umrechnen (: 10), dann A = π · r²',steps:[`r = ${r} dm = ${N(r/10)} m`,`A = π · ${N(r/10)}²`,`A ≈ ${F(A)} m²`],traps:[{v:PI*r*r/10,m:'dm² darf man nicht durch 10 teilen: 1 m² = 100 dm². Rechne zuerst r in m um.'},{v:PI*r*r,m:'Das ist die Fläche in dm². Gefragt ist m² (1 m² = 100 dm²).'}]};},
+ ()=>{const d=In(50,90),km=Rn(1,5,1),n=km*100000/(PI*d);return {text:`Ein Rad hat den Durchmesser ${d} cm. Wie oft dreht es sich auf einer Strecke von ${N(km)} km? Runde auf ganze Umdrehungen.`,ans:n,unit:'Umdrehungen',dec:0,tol:Math.max(2.01,n*0.003),fig:{k:'d',l:`d = ${d} cm`},tip:'Strecke und Umfang müssen in derselben Einheit sein! 1 km = 100 000 cm',steps:[`u = π · ${d} ≈ ${F(PI*d)} cm`,`${N(km)} km = ${fmtN(km*100000)} cm`,`n = ${fmtN(km*100000)} : ${F(PI*d)} ≈ ${F(n,0)}`]};},
+ ()=>mc('Ein Kreis hat den Flächeninhalt A = 2,5 m². Wie viele cm² sind das?','25 000 cm²',['250 cm²','2 500 cm²','250 000 cm²'],['1 m² = 10 000 cm²','2,5 · 10 000 = 25 000 cm²']),
+ ()=>mc('Welche Umrechnung ist richtig?',pick(['1 cm² = 100 mm²','1 m = 1 000 mm','1 km = 100 000 cm']),['1 cm² = 10 mm²','1 m² = 100 cm²','1 dm = 100 mm'],['Längen: 1 cm = 10 mm, 1 m = 100 cm, 1 km = 1 000 m','Flächen: 1 cm² = 100 mm², 1 m² = 10 000 cm²'])
+]};
+
+/* figures */
+function fig(f){if(!f||f.k==='none')return '';const S=(c)=>`<svg viewBox="0 0 170 130" role="img" aria-label="Skizze">${c}</svg>`;const st='stroke="var(--ink)" stroke-width="2.5" fill="none"';const T=(x,y,s,c='var(--ink)',sz=15)=>`<text x="${x}" y="${y}" font-family="Patrick Hand,cursive" font-size="${sz}" fill="${c}" text-anchor="middle">${s}</text>`;
+ const arcP=(cx,cy,r,a0,a1)=>{const p=(a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];const[x0,y0]=p(a0),[x1,y1]=p(a1);return `M${cx} ${cy} L${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${a1-a0>PI?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z`;};
+ switch(f.k){
+ case 'r':return S(`<circle cx="85" cy="62" r="48" ${st}/><line x1="85" y1="62" x2="133" y2="62" stroke="var(--red)" stroke-width="3"/><circle cx="85" cy="62" r="3" fill="var(--ink)"/>`+T(110,55,'r','var(--red)')+T(85,126,f.l,'var(--ink2)',14));
+ case 'd':return S(`<circle cx="85" cy="62" r="48" ${st}/><line x1="37" y1="62" x2="133" y2="62" stroke="var(--pen)" stroke-width="3"/>`+T(85,55,'d','var(--pen)')+T(85,126,f.l,'var(--ink2)',14));
+ case 'half':return S(`<path d="M25 95 A60 60 0 0 1 145 95" stroke="var(--pen)" stroke-width="4" fill="none"/><line x1="15" y1="95" x2="155" y2="95" stroke="var(--ink2)" stroke-width="1.5"/><line x1="85" y1="95" x2="145" y2="95" stroke="var(--red)" stroke-width="3"/>`+T(115,88,'r','var(--red)')+T(85,120,f.l,'var(--ink2)',14));
+ case 'quarter':return S(`<path d="M40 105 L40 20 A85 85 0 0 1 125 105 Z" fill="var(--mark)" fill-opacity=".45" ${st.replace('fill="none"','')}/>`+T(30,65,'r','var(--red)')+T(85,124,f.l,'var(--ink2)',14));
+ case 'sector':{const al=(f.al||60)*PI/180,a0=-PI/2-al/2;return S(`<circle cx="85" cy="68" r="48" stroke="var(--line)" stroke-width="1.5" fill="none"/><path d="${arcP(85,68,48,a0,a0+al)}" fill="var(--mark)" fill-opacity=".45" ${st.replace('fill="none"','')}/>`+T(85,88,Math.round(f.al||60)+'°','var(--red)',14)+T(85,126,f.l,'var(--ink2)',14));}
+ case 'clock':{const al=(f.al||60)*PI/180,a0=-PI/2;return S(`<circle cx="85" cy="62" r="50" ${st}/><path d="${arcP(85,62,42,a0,a0+Math.min(al,2*PI-0.01))}" fill="var(--pen-soft)" stroke="var(--pen)" stroke-width="2"/><line x1="85" y1="62" x2="85" y2="20" stroke="var(--red)" stroke-width="3"/>`+T(85,126,'Zeiger '+f.l,'var(--ink2)',14));}
+ case 'ring':return S(`<circle cx="85" cy="62" r="52" fill="var(--pen-soft)" stroke="var(--ink)" stroke-width="2.5"/><circle cx="85" cy="62" r="30" fill="var(--card)" stroke="var(--ink)" stroke-width="2.5"/><line x1="85" y1="62" x2="137" y2="62" stroke="var(--red)" stroke-width="2"/><line x1="85" y1="62" x2="85" y2="32" stroke="var(--pen)" stroke-width="2"/>`+T(126,57,'R','var(--red)',13)+T(78,48,'r','var(--pen)',13));
+ case 'ringsec':{const al=(f.al||60)*PI/180,a0=-PI/2-al/2,a1=a0+al,p=(r,a)=>(85+r*Math.cos(a)).toFixed(1)+' '+(112+r*Math.sin(a)).toFixed(1);return S(`<path d="M${p(100,a0)} A100 100 0 0 1 ${p(100,a1)} L${p(70,a1)} A70 70 0 0 0 ${p(70,a0)} Z" fill="var(--mark)" fill-opacity=".5" ${st.replace('fill="none"','')}/>`+T(85,104,Math.round(f.al)+'°','var(--red)',14));}
+ case 'mirror':return S(`<rect x="60" y="35" width="50" height="60" ${st}/><path d="M60 35 A25 25 0 0 1 110 35" ${st}/><path d="M60 95 A25 25 0 0 0 110 95" ${st}/>`+T(85,70,'h','var(--red)')+T(85,30,'b','var(--pen)',13));
+ case 'tree':return S(`<circle cx="85" cy="62" r="50" fill="var(--mark)" fill-opacity=".35" ${st.replace('fill="none"','')}/><circle cx="85" cy="62" r="36" stroke="var(--ink2)" stroke-width="1.2" fill="none"/><circle cx="85" cy="62" r="22" stroke="var(--ink2)" stroke-width="1.2" fill="none"/><circle cx="85" cy="62" r="9" stroke="var(--ink2)" stroke-width="1.2" fill="none"/>`);
+ case 'stadium':return S(`<path d="M50 30 H120 A32 32 0 0 1 120 94 H50 A32 32 0 0 1 50 30 Z" fill="var(--mark)" fill-opacity=".35" stroke="var(--ink)" stroke-width="2.5"/><path d="M50 30 H120 M50 94 H120" stroke="var(--pen)" stroke-width="3"/>`);
+ case 'earth':return S(`<circle cx="85" cy="62" r="48" fill="var(--pen-soft)" stroke="var(--ink)" stroke-width="2.5"/><ellipse cx="85" cy="62" rx="48" ry="11" stroke="var(--ink2)" stroke-width="1.2" fill="none"/><line x1="85" y1="14" x2="85" y2="110" stroke="var(--ink2)" stroke-width="1.2"/>`+T(85,126,'r ≈ 6370 km','var(--ink2)',13));
+ case 'sqc':return S(`<rect x="40" y="18" width="90" height="90" ${st}/><circle cx="85" cy="63" r="45" stroke="var(--pen)" stroke-width="2.5" fill="var(--mark)" fill-opacity=".3"/>`);
+ case 'segment':{const al=(f.al||90)*PI/180,a0=-PI/2-al/2,a1=a0+al,cx=85,cy=112,R=90,p=a=>(cx+R*Math.cos(a)).toFixed(1)+' '+(cy+R*Math.sin(a)).toFixed(1);return S(`<path d="M${cx} ${cy} L${p(a0)} M${cx} ${cy} L${p(a1)}" stroke="var(--ink2)" stroke-width="1.5"/><path d="M${p(a0)} A${R} ${R} 0 0 1 ${p(a1)} Z" fill="var(--mark)" fill-opacity=".5" stroke="var(--ink)" stroke-width="2.5"/>`+T(85,104,Math.round(f.al)+'°','var(--red)',13));}
+ }return '';}
+
+const Q={mode:'mix',cur:null,answered:false,sel:-1,probe:null};
+const MODES=[['u','Umfang','Z1'],['b','Kreisbogen','Z2'],['a','Fläche','Z3'],['k','Umkehraufgaben','Z4'],['e','Einheiten','mm, cm, dm, m, km'],['v','Vernetzt','Laufbahn, Erde …'],['p','Sektor & Ring','Plus'],['mix','Gemischt','alle Themen'],['probe','Probe-Schularbeit','10 Aufgaben mit Note']];
+function buildModes(){const M=$('#modes');M.innerHTML='';MODES.forEach(([k,t,s])=>{if(k==='p'&&!$('#plus').checked)return;const b=document.createElement('button');if(k==='probe')b.className='probe';b.setAttribute('aria-pressed',Q.mode===k);b.innerHTML=`${t}<small>${s}</small>`;b.onclick=()=>setMode(k);M.appendChild(b);});}
+function setMode(k){if(k==='p'&&!$('#plus').checked){$('#plus').checked=true;}Q.mode=k;Q.probe=null;if(k==='probe')startProbe();buildModes();newQ();}
+$('#plus').onchange=()=>{if(!$('#plus').checked&&Q.mode==='p')Q.mode='mix';buildModes();};
+function topicsAvail(){return $('#plus').checked?['u','b','a','k','e','v','p']:['u','b','a','k','e','v'];}
+function gen(topic){const q=pick(GEN[topic])();q.topic=topic;if(q.dec===undefined)q.dec=2;return q;}
+function startProbe(){const plus=$('#plus').checked;let list=['u','b','a','a','k','k','e','e','v',plus?'p':pick(['u','b','v'])];list=shuffle(list);Q.probe={list,i:0,res:[]};}
+function newQ(){Q.answered=false;Q.sel=-1;let t;if(Q.mode==='probe'){if(!Q.probe)startProbe();if(Q.probe.i>=Q.probe.list.length){showResult();return;}t=Q.probe.list[Q.probe.i];}else if(Q.mode==='mix')t=pick(topicsAvail());else t=Q.mode;Q.cur=gen(t);renderQ();}
+function renderQ(){const q=Q.cur,C2=$('#qcard');const cnt=Q.mode==='probe'?`Aufgabe ${Q.probe.i+1} von ${Q.probe.list.length}`:'';
+ C2.innerHTML=`<div class="qhead"><span class="pill">${Z[q.topic]} · ${TOPICS[q.topic]}</span><span class="counter">${cnt}</span></div>
+ <div class="qbody"><div class="left"><p class="qtext">${q.text}</p>
+ ${q.mc?`<div class="opts" id="opts">${q.opts.map((o,i)=>`<button data-i="${i}">${o}</button>`).join('')}</div>`:`<div class="ans"><input id="inp" inputmode="decimal" autocomplete="off" placeholder="Ergebnis" aria-label="Ergebnis"><span class="unit">${q.unit}</span></div>`}
+ <div class="actions"><button class="btn" id="check">Prüfen</button>${q.tip?'<button class="btn ghost" id="tipb">Tipp</button>':''}</div>
+ <div id="tipbox"></div><div id="fb"></div></div>
+ ${fig(q.fig)?`<div class="fig">${fig(q.fig)}</div>`:''}</div>`;
+ if(q.mc)C2.querySelectorAll('#opts button').forEach(b=>b.onclick=()=>{if(Q.answered)return;Q.sel=+b.dataset.i;C2.querySelectorAll('#opts button').forEach(x=>x.classList.toggle('sel',x===b));});
+ else{const inp=$('#inp');inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();Q.answered?next():check();}});setTimeout(()=>inp.focus({preventScroll:true}),30);}
+ $('#check').onclick=()=>Q.answered?next():check();
+ if(q.tip)$('#tipb').onclick=()=>{$('#tipbox').innerHTML=`<div class="tipbox">${q.tip}</div>`;q.usedTip=true;};
+}
+function parseNum(s){s=String(s).trim().replace(/\s/g,'').replace(/[^0-9,.\-]/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'');s=s.replace(',','.');const x=parseFloat(s);return isNaN(x)?null:x;}
+function bookOk(str,x,ans){const t=String(str).trim().replace(/\s/g,''),m=t.match(/[.,](\d+)$/),k=m?m[1].length:0,A=Math.abs(ans),kmin=A>=10?0:A>=1?1:2;if(k<kmin||k>=2)return false;return Math.abs(x-ans)<=0.5*10**(-k)+A*0.003;}
+function tolOf(q,v){return q.tol!==undefined?q.tol:Math.max(q.dec===0?0.6:0.011,Math.abs(v)*0.003);}
+function check(){const q=Q.cur;let ok,trap=null;
+ if(q.mc){if(Q.sel<0){$('#fb').innerHTML='<div class="fb no"><p class="trap" style="margin:0">Wähle zuerst eine Antwort aus.</p></div>';return;}ok=Q.sel===q.ok;document.querySelectorAll('#opts button').forEach((b,i)=>{if(i===q.ok)b.classList.add('good');else if(i===Q.sel)b.classList.add('bad');});}
+ else{const x=parseNum($('#inp').value);if(x===null){$('#fb').innerHTML='<div class="fb no"><p class="trap" style="margin:0">Gib eine Zahl ein, zum Beispiel 12,57.</p></div>';return;}ok=Math.abs(x-q.ans)<=tolOf(q,q.ans)||(q.tol===undefined&&!q.conv&&q.dec!==0&&bookOk($('#inp').value,x,q.ans));if(!ok&&q.traps)trap=q.traps.find(t=>Math.abs(x-t.v)<=Math.max(0.011,Math.abs(t.v)*0.003));$('#inp').disabled=true;}
+ Q.answered=true;const s=DB.stats[q.topic]||(DB.stats[q.topic]={r:0,n:0});s.n++;if(ok)s.r++;DB.streak=ok?DB.streak+1:0;save();updateSide();
+ if(Q.mode==='probe'){Q.probe.res.push({t:q.topic,ok,text:q.text,sol:q.mc?q.opts[q.ok]:(q.conv?fmtN(+q.ans.toFixed(q.dec)):F(q.ans,q.dec))+' '+q.unit});Q.probe.i++;}
+ const sol=q.mc?q.opts[q.ok]:`${q.conv?fmtN(+q.ans.toFixed(q.dec)):F(q.ans,q.dec)} ${q.unit}`;
+ const praise=pick(['Super!','Richtig!','Genau so!','Stark gerechnet!','Perfekt!']);
+ $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><h3>${ok?praise:'Noch nicht ganz'}</h3>${!ok?`<p class="trap">${trap?trap.m:'Richtig wäre: '+sol}</p>`:''}<ol class="steps">${q.steps.map(x=>`<li>${x}</li>`).join('<br>')}</ol></div>`;
+ const last=Q.mode==='probe'&&Q.probe.i>=Q.probe.list.length;$('#check').textContent=last?'Ergebnis ansehen':'Nächste Aufgabe';const tb=$('#tipb');if(tb)tb.hidden=true;$('#check').focus({preventScroll:true});}
+function next(){newQ();$('#qcard').scrollIntoView({block:'nearest'});}
+function grade(p){return p>=87.5?[1,'Sehr gut']:p>=75?[2,'Gut']:p>=62.5?[3,'Befriedigend']:p>=50?[4,'Genügend']:[5,'Nicht genügend'];}
+function showResult(){const R=Q.probe.res,n=R.filter(r=>r.ok).length,p=n/R.length*100,[gn,gt]=grade(p);const by={};R.forEach(r=>{by[r.t]=by[r.t]||{r:0,n:0};by[r.t].n++;if(r.ok)by[r.t].r++;});const weak=Object.keys(by).filter(k=>by[k].r<by[k].n);
+ $('#qcard').innerHTML=`<div class="result"><div class="qhead"><span class="pill">Probe-Schularbeit</span></div><div class="grade"><div class="g">${gn}</div><div><h2 style="margin:0">${n} von ${R.length} richtig</h2><p style="margin:0;color:var(--ink2)">Ungefähr Note ${gn} (${gt}). Jede Lehrkraft bewertet etwas anders, das ist nur ein Richtwert.</p></div></div>
+ <ul class="rlist">${R.map(r=>`<li><span class="s ${r.ok?'ok':'no'}">${r.ok?'✓':'✗'}</span><span>${TOPICS[r.t]}: ${r.ok?'richtig':'Lösung '+r.sol}</span></li>`).join('')}</ul>
+ ${weak.length?`<p><b>Das solltest du noch üben:</b> ${weak.map(k=>TOPICS[k]).join(', ')}.</p>`:'<p><b>Alles richtig. Du bist bereit für die Schularbeit!</b></p>'}
+ <div class="actions"><button class="btn" id="again">Neue Probe-Schularbeit</button>${weak.filter(k=>VID_FOR[k]!==undefined).map(k=>`<button class="btn ghost" data-v="${VID_FOR[k]}">Video: ${VIDEOS[VID_FOR[k]].title}</button>`).join('')}</div></div>`;
+ $('#again').onclick=()=>{startProbe();newQ();};document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{showTab('videos');loadVideo(+b.dataset.v,false);});}
+function updateSide(){$('#streak').textContent=DB.streak;$('#bars').innerHTML=Object.keys(TOPICS).map(k=>{const s=DB.stats[k]||{r:0,n:0},p=s.n?s.r/s.n*100:0;return `<div class="bar"><span>${TOPICS[k].replace('aufgaben','').replace(' & Ring','/Ring')}</span><span class="t"><i style="width:${p}%"></i></span><span>${s.r}/${s.n}</span></div>`;}).join('');}
+
+/* ---------- Formel-Training ---------- */
+const CLOZE=[
+ {h:'Umfang mit Durchmesser',pre:'u = π · ',post:'',ok:'d',opts:['d','r','r²','2']},
+ {h:'Umfang mit Radius',pre:'u = 2 · π · ',post:'',ok:'r',opts:['r','d','r²','π']},
+ {h:'Durchmesser und Radius',pre:'d = ',post:' · r',ok:'2',opts:['2','π','r','4']},
+ {h:'Kreisfläche',pre:'A = π · ',post:'',ok:'r²',opts:['r²','r','d','2 · r']},
+ {h:'Kreisfläche mit Durchmesser',pre:'A = ',post:' · d²',ok:'π : 4',opts:['π : 4','π : 2','π','2 · π']},
+ {h:'Bogenlänge',pre:'b = π · r : ',post:' · α',ok:'180',opts:['180','360','90','2']},
+ {h:'Bogenlänge',pre:'b = π · ',post:' : 180 · α',ok:'r',opts:['r','d','r²','b']},
+ {h:'Halbkreisbogen',pre:'b = π · ',post:'',ok:'r',opts:['r','d','r²','2 · r']},
+ {h:'Umfang des Kreissektors',pre:'u = b + ',post:'',ok:'2 · r',opts:['2 · r','r','π · r','r²']},
+ {h:'Fläche des Kreissektors',pre:'A = π · r² : ',post:' · α',ok:'360',opts:['360','180','90','2']},
+ {h:'Fläche des Kreissektors mit Bogen',pre:'A = b · r : ',post:'',ok:'2',opts:['2','π','180','360']},
+ {h:'Kreisring',pre:'A = π · R² ',post:' π · r²',ok:'−',opts:['−','+','·',':']},
+ {h:'Kreissegment',pre:'A(Segment) = A(Sektor) ',post:' A(Dreieck)',ok:'−',opts:['−','+','·',':']},
+ {h:'Radius aus dem Umfang',pre:'r = u : ',post:'',ok:'(2 · π)',opts:['(2 · π)','π','2','(π · π)']},
+ {h:'Durchmesser aus dem Umfang',pre:'d = u : ',post:'',ok:'π',opts:['π','(2 · π)','2','180']},
+ {h:'Radius aus der Fläche',pre:'r = √(A : ',post:')',ok:'π',opts:['π','2','(2 · π)','4']},
+ {h:'Radius aus dem Bogen',pre:'r = b · 180 : (π · ',post:')',ok:'α',opts:['α','r','b','360']},
+ {h:'Winkel aus dem Bogen',pre:'α = b · ',post:' : (π · r)',ok:'180',opts:['180','360','π','2']},
+ {h:'Umformen',pre:'u = 2 · π · r   | : ',post:'   →   r = u : (2 · π)',ok:'(2 · π)',opts:['(2 · π)','π','2','r']},
+ {h:'Umformen',pre:'A = π · r²   | : π   →   ',post:' = A : π',ok:'r²',opts:['r²','r','2 · r','π']},
+ {h:'Umformen',pre:'r² = A : π   | ',post:'   →   r = √(A : π)',ok:'√',opts:['√','· 2',': 2','²']},
+ {h:'Längeneinheiten',pre:'1 m = ',post:' cm',ok:'100',opts:['100','10','1000','10 000']},
+ {h:'Längeneinheiten',pre:'1 km = ',post:' m',ok:'1000',opts:['1000','100','10','10 000']},
+ {h:'Flächeneinheiten',pre:'1 cm² = ',post:' mm²',ok:'100',opts:['100','10','1000','10 000']},
+ {h:'Flächeneinheiten',pre:'1 m² = ',post:' cm²',ok:'10 000',opts:['10 000','100','1000','1 000 000']}
+];
+const BUILD=[
+ {h:'Baue die Formel für den Umfang, wenn d gegeben ist.',lhs:'u',tiles:['π','d','r','2','r²'],prod:['π','d']},
+ {h:'Baue die Formel für den Umfang, wenn r gegeben ist.',lhs:'u',tiles:['2','π','r','d','r²'],prod:['2','π','r']},
+ {h:'Baue die Formel für die Kreisfläche.',lhs:'A',tiles:['π','r²','r','2','d'],prod:['π','r²']},
+ {h:'Baue die Formel für den Durchmesser, wenn r gegeben ist.',lhs:'d',tiles:['2','r','π','r²'],prod:['2','r']},
+ {h:'Baue die Formel für die Bogenlänge.',lhs:'b',tiles:['π','r','α','180','360',':','·','·'],seqs:['π·r:180·α','π·r·α:180','r·π:180·α','π·α·r:180','α·π·r:180']},
+ {h:'Baue die Formel für die Fläche des Kreissektors.',lhs:'A',tiles:['π','r²','r','α','360','180',':','·','·'],seqs:['π·r²:360·α','π·r²·α:360','α·π·r²:360','r²·π:360·α']},
+ {h:'Baue die Formel für den Radius, wenn der Umfang gegeben ist.',lhs:'r',tiles:['u','2','π',':',':','·','(',')','d'],seqs:['u:(2·π)','u:(π·2)','u:2:π']},
+ {h:'Baue die Formel für den Durchmesser, wenn der Umfang gegeben ist.',lhs:'d',tiles:['u','π','2',':','·'],seqs:['u:π']},
+ {h:'Baue die Formel für den Zentriwinkel, wenn b und r gegeben sind.',lhs:'α',tiles:['b','180','π','r','360',':','·','·','(',')'],seqs:['b·180:(π·r)','180·b:(π·r)','b·180:(r·π)','180·b:(r·π)']},
+ {h:'Baue die Formel für die Fläche eines Kreisrings.',lhs:'A',tiles:['π','π','R²','r²','−','+','·','·','(',')'],seqs:['π·R²−π·r²','π·(R²−r²)','R²·π−r²·π','(R²−r²)·π']}
+];
+const FT={mode:'cloze',deck:[],i:0,right:0,total:0,cur:null,built:[],used:[],tries:0};
+function fDeal(){const src=FT.mode==='cloze'?CLOZE:BUILD;FT.deck=shuffle(src.map((_,i)=>i));FT.i=0;fRender();}
+function fScore(){$('#fscore').textContent=`${FT.right} von ${FT.total} richtig`;}
+function fRender(){fScore();if(FT.i>=FT.deck.length){$('#fcard').innerHTML=`<p class="fmsg ok">Runde geschafft! Du hast alle ${FT.deck.length} Formeln durch.</p><button class="btn" id="fagain">Neue Runde</button>`;$('#fagain').onclick=fDeal;return;}
+ const n=`${FT.i+1} / ${FT.deck.length}`;FT.tries=0;
+ if(FT.mode==='cloze'){const c=CLOZE[FT.deck[FT.i]];FT.cur=c;$('#fcard').innerHTML=`<div class="fq">${c.h} · ${n}</div><div class="fline">${c.pre}<span class="gap" id="fgap">?</span>${c.post}</div><div class="chips" id="fchips">${shuffle(c.opts.slice()).map(o=>`<button>${o}</button>`).join('')}</div><div id="fmsg"></div>`;
+  document.querySelectorAll('#fchips button').forEach(b=>b.onclick=()=>{if(FT.cur.solved)return;const ok=b.textContent===c.ok;if(ok){b.classList.add('good');const gp=$('#fgap');gp.textContent=c.ok;gp.classList.add('good');FT.cur.solved=true;FT.total++;if(FT.tries===0)FT.right++;fScore();$('#fmsg').innerHTML=`<p class="fmsg ok">Richtig!</p><button class="btn" id="fnext">Weiter</button>`;$('#fnext').onclick=()=>{c.solved=false;FT.i++;fRender();};$('#fnext').focus({preventScroll:true});}else{FT.tries++;b.classList.add('bad');b.disabled=true;$('#fmsg').innerHTML='<p class="fmsg no">Noch nicht. Versuch einen anderen Baustein.</p>';}});}
+ else{const c=BUILD[FT.deck[FT.i]];FT.cur=c;FT.built=[];FT.used=[];$('#fcard').innerHTML=`<div class="fq">Formel bauen · ${n}</div><p style="margin:4px 0 0">${c.h}</p><div class="fline" id="fline"></div><div class="chips" id="fchips">${shuffle(c.tiles.map((t,i)=>[t,i])).map(([t,i])=>`<button data-i="${i}">${t}</button>`).join('')}</div><div class="actions"><button class="btn ghost" id="fback">Zurück</button><button class="btn ghost" id="fclear">Löschen</button><button class="btn" id="fcheck">Prüfen</button></div><div id="fmsg"></div>`;
+  const draw=()=>{$('#fline').innerHTML=`${c.lhs} = <span class="gap${FT.cur.solved?' good':''}">${fShow(c,FT.built)||'&nbsp;'}</span>`;document.querySelectorAll('#fchips button').forEach(b=>b.disabled=FT.used.includes(+b.dataset.i)||!!FT.cur.solved);};
+  document.querySelectorAll('#fchips button').forEach(b=>b.onclick=()=>{FT.built.push(b.textContent);FT.used.push(+b.dataset.i);draw();});
+  $('#fback').onclick=()=>{if(c.solved)return;FT.built.pop();FT.used.pop();draw();};$('#fclear').onclick=()=>{if(c.solved)return;FT.built=[];FT.used=[];draw();};
+  $('#fcheck').onclick=()=>{if(c.solved){c.solved=false;FT.i++;fRender();return;}const ok=fOk(c,FT.built);if(ok){c.solved=true;FT.total++;if(FT.tries===0)FT.right++;fScore();draw();$('#fmsg').innerHTML='<p class="fmsg ok">Richtig gebaut!</p>';$('#fcheck').textContent='Weiter';}else{FT.tries++;$('#fmsg').innerHTML=`<p class="fmsg no">Noch nicht ganz.${FT.tries>=2?' So geht es: '+c.lhs+' = '+fShow(c,fSol(c)):' Probier es nochmal!'}</p>`;}};
+  draw();}}
+function fShow(c,arr){return c.prod?arr.join(' · '):arr.join(' ').replace(/\( /g,'(').replace(/ \)/g,')');}
+function fSol(c){return c.prod?c.prod:c.seqs[0].match(/R²|r²|180|360|[^\s]/g);}
+function fOk(c,arr){if(c.prod)return arr.length===c.prod.length&&arr.slice().sort().join()===c.prod.slice().sort().join();return c.seqs.includes(arr.join(''));}
+$('#fm-cloze').onclick=()=>{FT.mode='cloze';$('#fm-cloze').setAttribute('aria-pressed',true);$('#fm-build').setAttribute('aria-pressed',false);fDeal();};
+$('#fm-build').onclick=()=>{FT.mode='build';$('#fm-build').setAttribute('aria-pressed',true);$('#fm-cloze').setAttribute('aria-pressed',false);fDeal();};
+fDeal();
+
+/* init */
+refreshColors();buildList();buildSegs();setCap();buildModes();updateSide();
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{resize();});
+resize();
+</script>
+
+
+<!-- Fokus-Labor: Zurück-Knopf -->
+<a href="../" id="fl-back" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#2f5bea;color:#fff;font:700 15px system-ui,-apple-system,sans-serif;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25)">← Fokus-Labor</a>
+</body>
+</html>

@@ -81,8 +81,16 @@ window.startParent = function (sb, me) {
   const subj = () => $("pSubj").value.trim() || "Allgemein";
   document.querySelectorAll("#pMode button").forEach(b => b.onclick = () => {
     mode = b.dataset.m; document.querySelectorAll("#pMode button").forEach(x => x.setAttribute("aria-pressed", x === b));
-    ["ai", "list", "one"].forEach(m => $("p-mk-" + m).hidden = m !== mode);
+    const panel = mode === "ex" ? "ai" : mode;
+    ["ai", "list", "one"].forEach(m => $("p-mk-" + m).hidden = m !== panel);
+    const ex = mode === "ex";
+    $("pExExtra").hidden = !ex;
+    $("pAiIntro").textContent = ex ? "Beschreib, welche Übungen du brauchst. Ein Foto der Merkseite oder Text hilft, damit die Übungen zum Unterricht passen (optional)." : "Foto der Heftseite oder Text einfügen. Die KI schlägt Fragen vor, du prüfst und schickst sie.";
+    $("pAiTextLbl").textContent = ex ? "Text aus Heft oder Buch (optional)" : "Text aus Heft oder Buch";
+    $("pAiGo").textContent = ex ? "Übungen erstellen" : "Fragen vorschlagen";
   });
+  let level = "mittel";
+  document.querySelectorAll("#pLevel button").forEach(b => b.onclick = () => { level = b.dataset.l; document.querySelectorAll("#pLevel button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
   document.querySelectorAll("#pN button").forEach(b => b.onclick = () => { n = +b.dataset.n; document.querySelectorAll("#pN button").forEach(x => x.setAttribute("aria-pressed", x === b)); });
   async function sendCards(list) {
     if (!list.length) return;
@@ -106,12 +114,13 @@ window.startParent = function (sb, me) {
   }
   $("pPhoto").onchange = e => { photos = [...e.target.files].slice(0, 3); $("pPhotoName").textContent = photos.length ? photos.length + " Foto" + (photos.length > 1 ? "s" : "") + " gewählt" : "Kein Foto"; };
   $("pAiGo").onclick = async () => {
-    const text = $("pAiText").value.trim();
-    if (!text && !photos.length) { $("pAiStatus").textContent = "Erst Text einfügen oder ein Foto wählen."; return; }
+    const text = $("pAiText").value.trim(), ex = mode === "ex", task = $("pTask").value.trim();
+    if (ex && !task) { $("pAiStatus").textContent = "Bitte zuerst den Auftrag eintragen."; return; }
+    if (!ex && !text && !photos.length) { $("pAiStatus").textContent = "Erst Text einfügen oder ein Foto wählen."; return; }
     $("pAiGo").disabled = true; $("pAiStatus").textContent = "Denke nach … (kann bis zu einer Minute dauern)"; $("pAiOut").innerHTML = ""; $("pAiTake").hidden = true;
     try {
       const images = await Promise.all(photos.map(resize));
-      const { data, error } = await sb.functions.invoke("suggest-cards", { body: { text, images, n, subject: subj() } });
+      const { data, error } = await sb.functions.invoke("suggest-cards", { body: { text, images, n, subject: subj(), mode: ex ? "exercise" : "cards", task, level } });
       if (error) { let msg = "Das hat nicht geklappt."; try { const j = await error.context.json(); if (j.error) msg = j.error; } catch (e) {} throw new Error(msg); }
       proposals = (data && data.cards) || [];
       if (!proposals.length) { $("pAiStatus").textContent = "Keine brauchbaren Fragen gefunden. Mehr Text oder ein schärferes Foto probieren."; return; }
@@ -163,8 +172,40 @@ window.startParent = function (sb, me) {
       J.map((n, i) => i).filter(i => J[i][0] >= l.from && J[i][0] <= l.to).map(i => `<div class="li"><div class="txt"><b>#${i + 1} ${esc(J[i][1])}</b> ${i < done ? "✓" : ""}<small>Woche ${J[i][0]} · ${esc(J[i][2])}</small><small><i>Übung:</i> ${esc(J[i][3])}</small><small><i>Karte:</i> ${esc(J[i][4])} = ${esc(J[i][5])}</small></div></div>`).join("") + `</div></details>`).join("");
   }
 
+  /* Erinnerungen */
+  const WD = [["1", "Mo"], ["2", "Di"], ["3", "Mi"], ["4", "Do"], ["5", "Fr"], ["6", "Sa"], ["7", "So"]];
+  let SET = { goal: { spr: 1, cards: 25 }, rem: { days: {} } };
+  async function loadSettings() {
+    const { data } = await sb.from("family_settings").select("data").eq("family_id", me.family_id).maybeSingle();
+    if (data && data.data) SET = { goal: { spr: 1, cards: 25, ...(data.data.goal || {}) }, rem: { days: {}, ...(data.data.rem || {}) } };
+    $("gSpr").value = SET.goal.spr; $("gCards").value = SET.goal.cards;
+    $("remTable").innerHTML = `<tr><th>Tag</th><th>An</th><th>Nachmittag</th><th>Abend (nur wenn noch offen)</th></tr>` +
+      WD.map(([k, l]) => { const d = SET.rem.days[k] || {}; const def = +k <= 5;
+        const on = d.on !== undefined ? d.on : false;
+        return `<tr><td><b>${l}</b></td><td><input type="checkbox" id="ron-${k}" ${on ? "checked" : ""} aria-label="${l} an"></td>
+        <td><input type="time" id="ra-${k}" value="${esc(d.a !== undefined ? d.a : (def ? "15:30" : "10:30"))}" aria-label="${l} Nachmittag"></td>
+        <td><input type="time" id="re-${k}" value="${esc(d.e !== undefined ? d.e : (def ? "19:00" : "18:00"))}" aria-label="${l} Abend"></td></tr>`; }).join("");
+    const { count } = await sb.from("push_subs").select("id", { count: "exact", head: true }).eq("family_id", me.family_id);
+    $("remDev").innerHTML = count ? `<b>✓ Erinnerungen sind auf ${count} Gerät${count > 1 ? "en" : ""} eingeschaltet.</b>` : `<b>Noch auf keinem Gerät eingeschaltet.</b>`;
+    $("remTest").disabled = !count;
+  }
+  $("remSave").onclick = async () => {
+    const days = {}; WD.forEach(([k]) => { days[k] = { on: $("ron-" + k).checked, a: $("ra-" + k).value, e: $("re-" + k).value }; });
+    const data = { goal: { spr: Math.max(1, +$("gSpr").value || 1), cards: Math.max(5, +$("gCards").value || 25) }, rem: { days } };
+    const { error } = await sb.from("family_settings").upsert({ family_id: me.family_id, data, updated_at: new Date().toISOString() });
+    $("remSaved").textContent = error ? "Speichern hat nicht geklappt. Internet prüfen." : "Gespeichert ✓";
+    setTimeout(() => $("remSaved").textContent = "", 3000);
+  };
+  $("remTest").onclick = async () => {
+    $("remTestMsg").textContent = "Schicke …";
+    const { data, error } = await sb.functions.invoke("send-reminders", { body: { test: true } });
+    $("remTestMsg").textContent = error ? "Das hat nicht geklappt. Ist die Funktion send-reminders eingerichtet?" : (data && data.sent ? "Test-Erinnerung verschickt. Sie sollte gleich am iPhone erscheinen." : "Kein Gerät erreicht. Bitte am iPhone Erinnerungen neu einschalten.");
+  };
+
   function renderAll() { renderOverview(); renderCards(); renderExams(); renderNuggets(); }
   $("pRefresh").onclick = load;
+  loadSettings();
+  if (window.initParentTexts) sb.from("profiles").select("role,display_name").eq("family_id", me.family_id).then(({ data }) => { const k = (data || []).find(x => x.role === "child"); window.initParentTexts(sb, me, (k && k.display_name) || "deine Tochter"); });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
   load();
 };
