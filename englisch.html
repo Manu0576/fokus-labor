@@ -1149,7 +1149,7 @@ async function setupReview(ta,ty,to){
     if(words<30){$("#wreview").innerHTML=`<div class="feedback bad"><strong>Noch zu kurz (${words} Wörter)</strong>Schreib mindestens 30 Wörter. Ziel für die Schularbeit sind 120–150.</div>`;return;}
     const art=(FRAMES[ty.value]||{}).label||ty.value, thema=(TASKS[to.value]||{}).label||to.value, ang=(($("#wtask")||{}).innerText||"").trim().slice(0,800);
     try{localStorage.setItem("fokuslabor.outbox",JSON.stringify({fach:"Englisch",art,angabe:thema+(ang?": "+ang:""),text,at:Date.now()}))}catch(e){}
-    location.href="../#texte";};
+    location.href="./#texte";};
   return;
   let ctl=null;
   stop.onclick=()=>ctl&&ctl.abort();
@@ -1198,4 +1198,4 @@ open(store.get("last","zeiten"));
 </script>
 
 <!-- Fokus-Labor: Zurück-Knopf -->
-<a href="../" id="fl-back" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#2f5bea;color:#fff;font:700 15px system-ui,-apple-system,sans-serif;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25)">← Fokus-Labor</a>
+<a href="./" id="fl-back" style="position:fixed;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;background:#2f5bea;color:#fff;font:700 15px system-ui,-apple-system,sans-serif;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25)">← Fokus-Labor</a>
