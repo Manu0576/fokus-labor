@@ -111,34 +111,47 @@ async function takeInbox() {
 }
 
 /* ---------- Start ---------- */
-async function enter() {
-  const { data: { user } } = await sb.auth.getUser();
+const PKEY = "fokuslabor.profile";
+async function enter(user) {
+  // Benutzer aus der gespeicherten Anmeldung nehmen, ohne Internet-Prüfung beim Start
+  if (!user) { const { data: { session } } = await sb.auth.getSession(); user = session && session.user; }
   if (!user) { show("loginView"); return; }
-  const { data: p } = await sb.from("profiles").select("role,family_id,display_name").eq("id", user.id).single();
-  if (!p) { show("loginView"); $("loginErr").textContent = "Dieses Konto ist noch keiner Familie zugeordnet. Siehe Anleitung, Schritt 5."; await sb.auth.signOut(); return; }
+  let cached = null; try { cached = JSON.parse(localStorage.getItem(PKEY)); } catch (e) {}
+  if (cached && cached.id !== user.id) cached = null;
+  let p = null, err = null;
+  for (let i = 0; i < 3 && !p; i++) {
+    const r = await sb.from("profiles").select("role,family_id,display_name").eq("id", user.id).maybeSingle();
+    p = r.data; err = r.error;
+    if (!p && !err) break;                       // Antwort kam, aber kein Profil
+    if (!p) await new Promise(res => setTimeout(res, 800));
+  }
+  if (!p && cached) p = cached;                  // offline oder langsam: letztes bekanntes Profil
+  if (!p && err) { show("loginView"); $("loginErr").textContent = "Keine Verbindung. Bitte Internet prüfen und die App neu öffnen."; return; }
+  if (!p) { show("loginView"); $("loginErr").textContent = "Dieses Konto ist noch keiner Familie zugeordnet. Siehe Anleitung, Schritt 5."; return; }
+  try { localStorage.setItem(PKEY, JSON.stringify({ ...p, id: user.id })); } catch (e) {}
   me = p;
   if (p.role === "child") startKid();
   else { show("parentApp"); window.startParent(sb, me); }
 }
 async function boot() {
   if (!C.url || !C.key || !window.supabase) { show("setupView"); return; }
-  sb = window.supabase.createClient(C.url, C.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  sb = window.supabase.createClient(C.url, C.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "fokuslabor.auth", storage: window.localStorage } });
   window.__sb = sb;
   $("loginForm").addEventListener("submit", async ev => {
     ev.preventDefault();
     const btn = $("loginBtn"); btn.disabled = true; $("loginErr").textContent = "";
-    const { error } = await sb.auth.signInWithPassword({ email: $("loginEmail").value.trim(), password: $("loginPw").value });
+    const { data, error } = await sb.auth.signInWithPassword({ email: $("loginEmail").value.trim(), password: $("loginPw").value });
     btn.disabled = false;
     if (error) { $("loginErr").textContent = "Das hat nicht geklappt. E-Mail und Passwort prüfen."; return; }
-    enter();
+    enter(data.user);
   });
   document.querySelectorAll("[data-logout]").forEach(b => b.onclick = async () => {
     if (me && me.role === "child" && window.childApi) { clearTimeout(pushTimer); await push(); }
-    try { localStorage.removeItem(KEY); } catch (e) {}
+    try { localStorage.removeItem(KEY); localStorage.removeItem(PKEY); } catch (e) {}
     await sb.auth.signOut(); location.reload();
   });
   const { data: { session } } = await sb.auth.getSession();
-  if (session) enter(); else show("loginView");
+  if (session) enter(session.user); else show("loginView");
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 boot();
