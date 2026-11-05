@@ -1,7 +1,7 @@
 /* Fokus-Labor: Offline-Speicher und Erinnerungen. Bei Änderungen die Versionsnummer erhöhen. */
-const CACHE = "fokuslabor-v4";
+const CACHE = "fokuslabor-v5";
 const FILES = ["./", "index.html", "config.js", "nuggets.js", "main.js", "parent.js", "push.js", "texts.js", "parent-texts.js", "manifest.webmanifest",
-  "werkstatt/werkstaetten.js", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
+  "werkstaetten.js", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).catch(() => {}).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
