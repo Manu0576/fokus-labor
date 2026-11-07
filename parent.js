@@ -100,28 +100,50 @@ window.startParent = function (sb, me) {
     toast(list.length + " Karten an " + kidName + " geschickt");
     await load(); return true;
   }
-  function resize(file) {
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => { const img = new Image(); img.onload = () => {
-        const max = 1568, k = Math.min(1, max / Math.max(img.width, img.height));
-        const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        res({ type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.85).split(",")[1] });
-      }; img.onerror = rej; img.src = r.result; };
-      r.onerror = rej; r.readAsDataURL(file);
-    });
+  async function resize(file, idx) {
+    const max = 1400;
+    const draw = (src, w, h) => {
+      const k = Math.min(1, max / Math.max(w, h));
+      const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", 0.8).split(",")[1];
+      if (!d || d.length < 100) throw new Error("leer");
+      return { type: "image/jpeg", data: d };
+    };
+    try {
+      if (window.createImageBitmap) { const bmp = await createImageBitmap(file); const r = draw(bmp, bmp.width, bmp.height); bmp.close && bmp.close(); return r; }
+    } catch (e) { /* weiter mit dem zweiten Weg */ }
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("x")); i.src = url; });
+      return draw(img, img.naturalWidth, img.naturalHeight);
+    } catch (e) {
+      throw new Error("Foto " + (idx + 1) + " konnte nicht gelesen werden. Bitte ein anderes Foto oder einen Screenshot davon probieren.");
+    } finally { URL.revokeObjectURL(url); }
   }
-  $("pPhoto").onchange = e => { photos = [...e.target.files].slice(0, 3); $("pPhotoName").textContent = photos.length ? photos.length + " Foto" + (photos.length > 1 ? "s" : "") + " gewählt" : "Kein Foto"; };
+  $("pPhoto").onchange = e => { photos = [...e.target.files].slice(0, 3); $("pPhotoName").innerHTML = photos.length ? photos.length + " Foto" + (photos.length > 1 ? "s" : "") + ` gewählt · <button type="button" id="pPhotoClear" style="font:inherit;border:0;background:none;color:var(--pink);text-decoration:underline;cursor:pointer;padding:0">entfernen</button>` : "Kein Foto";
+    const cl = document.getElementById("pPhotoClear"); if (cl) cl.onclick = () => { photos = []; $("pPhoto").value = ""; $("pPhotoName").textContent = "Kein Foto"; }; };
   $("pAiGo").onclick = async () => {
     const text = $("pAiText").value.trim(), ex = mode === "ex", task = $("pTask").value.trim();
     if (ex && !task) { $("pAiStatus").textContent = "Bitte zuerst den Auftrag eintragen."; return; }
     if (!ex && !text && !photos.length) { $("pAiStatus").textContent = "Erst Text einfügen oder ein Foto wählen."; return; }
     $("pAiGo").disabled = true; $("pAiStatus").textContent = "Denke nach … (kann bis zu einer Minute dauern)"; $("pAiOut").innerHTML = ""; $("pAiTake").hidden = true;
     try {
-      const images = await Promise.all(photos.map(resize));
+      $("pAiStatus").textContent = photos.length ? "Bereite Fotos vor …" : "Denke nach … (kann bis zu einer Minute dauern)";
+      const images = [];
+      for (let i = 0; i < photos.length; i++) images.push(await resize(photos[i], i));
+      $("pAiStatus").textContent = "Denke nach … (kann bis zu einer Minute dauern)";
+      const t0 = Date.now();
       const { data, error } = await sb.functions.invoke("suggest-cards", { body: { text, images, n, subject: subj(), mode: ex ? "exercise" : "cards", task, level } });
-      if (error) { let msg = "Das hat nicht geklappt."; try { const j = await error.context.json(); if (j.error) msg = j.error; } catch (e) {} throw new Error(msg); }
+      if (error) {
+        const secs = Math.round((Date.now() - t0) / 1000);
+        const ctx = error.context;
+        if (ctx && typeof ctx.status === "number") {
+          let detail = ""; try { const raw = await ctx.text(); try { const j = JSON.parse(raw); detail = j.error || j.message || j.msg || raw; } catch (x) { detail = raw; } } catch (x) {}
+          throw new Error("Fehler " + ctx.status + " nach " + secs + " s" + (detail ? ": " + String(detail).slice(0, 160) : "") + ". Bitte Screenshot an Claude.");
+        }
+        throw new Error("Keine Antwort vom Server nach " + secs + " s (" + (error.message || error.name || "unbekannt") + "). Bitte Screenshot an Claude.");
+      }
       proposals = (data && data.cards) || [];
       if (!proposals.length) { $("pAiStatus").textContent = "Keine brauchbaren Fragen gefunden. Mehr Text oder ein schärferes Foto probieren."; return; }
       $("pAiStatus").textContent = "Häkchen weg bei allem, was nicht passt. Texte kannst du ändern.";
